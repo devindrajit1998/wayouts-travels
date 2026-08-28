@@ -1,0 +1,25 @@
+/* ----------------------------------------------------------------
+			[ All Css Plugins & Helper Classes File ]
+-----------------------------------------------------------------*/
+
+/* == bootstrap == */
+@import url("plugins/bootstrap.min.css");
+
+/* == animate css == */
+@import url("plugins/animate.min.css");
+
+/* == themify & font awesome icons ==*/
+@import url("plugins/themify-icons.css");
+@import url("plugins/font-awesome-pro.css");
+
+/* == magnific-popup gallery  == */
+@import url("plugins/magnific-popup.css");
+
+/* == YouTubePopUp == */
+@import url("plugins/YouTubePopUp.css");
+
+/* == justifiedGallery.min == */
+@import url("plugins/justifiedGallery.min.css");
+
+/* == swiper.min font == */
+@import url("plugins/swiper.min.css");
