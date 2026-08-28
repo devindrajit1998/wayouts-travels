@@ -1,12 +1,33 @@
 'use client';
 
+import { useState, useEffect } from 'react';
 import { defaultHomeContent } from '../../lib/homeContent';
+import { getCollectionItems } from '../../lib/firestoreService';
 
 /**
- * Data-driven Services section. Content is editable from /admin/home (Services tab).
+ * Data-driven Services section. Content is editable from /admin/home (Services tab)
+ * and pulls live items from Firestore 'services' collection.
  */
 export default function ServicesSection({ content = defaultHomeContent.services }) {
-    const { titlePart1, titlePart2, circleText, services, backgroundImage } = content;
+    const { titlePart1, titlePart2, circleText, backgroundImage } = content;
+    const [serviceList, setServiceList] = useState(content.services || defaultHomeContent.services.services);
+
+    useEffect(() => {
+        let isMounted = true;
+        getCollectionItems('services', []).then((items) => {
+            if (isMounted && items && items.length > 0) {
+                const mapped = items.slice(0, 4).map((s) => ({
+                    title: s.title || s.name,
+                    icon: s.icon ? (s.icon.startsWith('fa-') ? s.icon : `fa-${s.icon}`) : 'fa-bell-concierge',
+                    link: s.link || '/services'
+                }));
+                setServiceList(mapped);
+            }
+        });
+        return () => {
+            isMounted = false;
+        };
+    }, []);
 
     return (
         <section className="services pt-120">
@@ -40,9 +61,9 @@ export default function ServicesSection({ content = defaultHomeContent.services 
                     </div>
                 </div>
                 <div className="row">
-                    {services.map((service, index) => (
+                    {serviceList.map((service, index) => (
                         <div className="col-md-3" key={index}>
-                            <div className={`item mb-25 ${index < services.length / 2 ? 'duru-slide-left' : 'duru-slide-right'}`}>
+                            <div className={`item mb-25 ${index < serviceList.length / 2 ? 'duru-slide-left' : 'duru-slide-right'}`}>
                                 <a href={service.link || '/service-details'}><span className="arrow fa-thin fa-arrow-up-right"></span></a>
                                 <div className="icon"><i className={`fa-thin ${service.icon}`}></i></div>
                                 <h5>{service.title}</h5>

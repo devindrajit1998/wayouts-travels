@@ -1,19 +1,110 @@
+'use client';
+
+import { useState, useEffect } from 'react';
+import { defaultHomeContent, getHomeContent } from '../../lib/homeContent';
+import { addCollectionItem } from '../../lib/firestoreService';
+
 export default function Footer() {
+    const [footerContent, setFooterContent] = useState(defaultHomeContent.footer || {
+        subtitle: 'SUBSCRIBE TO TRAVEL',
+        titlePart1: 'Travel deals to your',
+        titleHighlight: 'inbox!',
+        privacyText: 'We are committed to protecting your',
+        privacyLink: '#0',
+        instagramHandle: 'WAYOUTS',
+        instagramLink: 'https://instagram.com/wayouts_travels',
+        instagramImages: [
+            '/assets/img/insta/03.jpg',
+            '/assets/img/insta/01.jpg',
+            '/assets/img/insta/02.jpg',
+            '/assets/img/insta/04.jpg',
+            '/assets/img/insta/05.jpg',
+            '/assets/img/insta/06.jpg'
+        ],
+    });
+
+    const [email, setEmail] = useState('');
+    const [subStatus, setSubStatus] = useState(null); // 'submitting' | 'success' | 'error'
+
+    useEffect(() => {
+        let isMounted = true;
+        getHomeContent().then((data) => {
+            if (isMounted && data?.footer) {
+                setFooterContent(data.footer);
+            }
+        });
+        return () => {
+            isMounted = false;
+        };
+    }, []);
+
+    async function handleSubscribe(e) {
+        e.preventDefault();
+        if (!email) return;
+        setSubStatus('submitting');
+
+        const d = new Date();
+        const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+        const today = `${d.getDate()} ${months[d.getMonth()]} ${d.getFullYear()}`;
+
+        try {
+            await addCollectionItem('subscribers', {
+                email,
+                source: 'Homepage Footer',
+                date: today,
+                city: 'India',
+                status: 'Subscribed',
+            });
+            setSubStatus('success');
+            setEmail('');
+        } catch (err) {
+            setSubStatus('error');
+        }
+    }
+
+    const images = footerContent.instagramImages && footerContent.instagramImages.length > 0
+        ? footerContent.instagramImages
+        : ['/assets/img/insta/03.jpg', '/assets/img/insta/01.jpg', '/assets/img/insta/02.jpg', '/assets/img/insta/04.jpg', '/assets/img/insta/05.jpg', '/assets/img/insta/06.jpg'];
+
     return (
         <footer className="footer">
             <div className="container">
                 <div className="row justify-content-center">
                     <div className="col-md-7 mb-45 text-center">
                         <div className="subscribe">
-                            <div className="section-subtitle wow fadeInRight">Subscribe to travel</div>
-                            <div className="section-title d-rotate wow mb-30"><span className="rotate-text text-white">Travel deals to your inbox<i>!</i></span></div>
+                            <div className="section-subtitle wow fadeInRight">{footerContent.subtitle || 'SUBSCRIBE TO TRAVEL'}</div>
+                            <div className="section-title d-rotate wow mb-30">
+                                <span className="rotate-text text-white">
+                                    {footerContent.titlePart1 || 'Travel deals to your'}{' '}
+                                    <i>{footerContent.titleHighlight || 'inbox!'}</i>
+                                </span>
+                            </div>
                             <div className="newsletter">
-                                <form action="#">
-                                    <input type="email" placeholder="Enter your email address" required />
-                                    <button type="submit"><i className="fa-light fa-arrow-right"></i></button>
+                                <form onSubmit={handleSubscribe}>
+                                    <input
+                                        type="email"
+                                        placeholder="Enter your email address"
+                                        required
+                                        value={email}
+                                        onChange={(e) => setEmail(e.target.value)}
+                                        disabled={subStatus === 'submitting'}
+                                    />
+                                    <button type="submit" disabled={subStatus === 'submitting'} aria-label="Subscribe">
+                                        <i className={`fa-light ${subStatus === 'submitting' ? 'fa-spinner fa-spin' : 'fa-arrow-right'}`}></i>
+                                    </button>
                                 </form>
                             </div>
-                            <p>We are committed to protecting your <a href="#0" className="text-decoration-line-bottom">privacy policy.</a></p>
+                            {subStatus === 'success' && (
+                                <p style={{ color: '#00c2cb', fontWeight: 600, marginTop: '8px' }}>
+                                    ✓ Thank you for subscribing! Check your inbox for exclusive offers.
+                                </p>
+                            )}
+                            {subStatus === 'error' && (
+                                <p style={{ color: '#f87171', fontWeight: 600, marginTop: '8px' }}>
+                                    Unable to subscribe. Please try again.
+                                </p>
+                            )}
+                            <p>{footerContent.privacyText || 'We are committed to protecting your'} <a href={footerContent.privacyLink || '#0'} className="text-decoration-line-bottom">privacy policy.</a></p>
                         </div>
                     </div>
                 </div>
@@ -22,13 +113,18 @@ export default function Footer() {
                         <div className="row">
                             <div className="col-md-12">
                                 <div className="item">
-                                    {['03', '01', '02', '04', '05', '06'].map((image) => (
-                                        <div className="img" key={image}>
-                                            <a href="#0"> <img src={`/assets/img/insta/${image}.jpg`} alt="" /> </a> <i className="fa-brands fa-instagram"></i>
+                                    {images.slice(0, 6).map((imgUrl, index) => (
+                                        <div className="img" key={index}>
+                                            <a href={footerContent.instagramLink || 'https://instagram.com'} target="_blank" rel="noopener noreferrer">
+                                                <img src={imgUrl} alt="" />
+                                            </a>
+                                            <i className="fa-brands fa-instagram"></i>
                                         </div>
                                     ))}
                                     <div className="follow">
-                                        <a href="#0" className="text-bg"> <span><i className="fa-brands fa-instagram"></i> / WAYOUTS</span></a>
+                                        <a href={footerContent.instagramLink || 'https://instagram.com'} target="_blank" rel="noopener noreferrer" className="text-bg">
+                                            <span><i className="fa-brands fa-instagram"></i> / {footerContent.instagramHandle || 'WAYOUTS'}</span>
+                                        </a>
                                     </div>
                                 </div>
                             </div>

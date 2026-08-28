@@ -1,5 +1,5 @@
-import AdminSection from '../AdminSection';
+import AdminTestimonialsPage from '../testimonials/page';
 
 export default function Page() {
-    return <AdminSection section="reviews" />;
+    return <AdminTestimonialsPage />;
 }

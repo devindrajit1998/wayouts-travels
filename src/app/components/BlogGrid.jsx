@@ -1,50 +1,75 @@
+'use client';
+
+import { useState, useEffect } from 'react';
 import BlogSidebar from './BlogSidebar';
+import { getCollectionItems } from '../../lib/firestoreService';
+
+const fallbackPosts = [
+    {
+        title: 'Top 7 Hidden Valleys of Kashmir You Must Explore',
+        desc: 'Beyond Dal Lake: Discover pristine pine meadows, gushing trout streams, and glacier passes in Aru and Betaab Valley.',
+        date: '28 Aug 2026',
+        img: '/assets/img/blog/1.jpg',
+        href: '/post',
+    },
+    {
+        title: 'A Culinary & Cultural Journey Through Old Kolkata to Darjeeling',
+        desc: 'From colonial tea estates in the Himalayas to legendary street bites, experience the vibrant spirit of Eastern India.',
+        date: '26 Aug 2026',
+        img: '/assets/img/blog/2.jpg',
+        href: '/post',
+    },
+    {
+        title: 'The Ultimate Guide to Kerala Backwaters & Munnar Hills',
+        desc: 'Plan the perfect monsoon and winter getaway amidst spice plantations, misty peaks, and serene lake cruises.',
+        date: '24 Aug 2026',
+        img: '/assets/img/blog/3.jpg',
+        href: '/post',
+    },
+    {
+        title: 'Rajasthan Forts & Desert Camps: Jodhpur to Jaisalmer',
+        desc: 'Witness golden sand dunes under starry skies and live like royalty in preserved Rajput palaces.',
+        date: '22 Aug 2026',
+        img: '/assets/img/blog/4.jpg',
+        href: '/post',
+    },
+    {
+        title: 'Scuba Diving & Coral Trails in Andaman Islands',
+        desc: 'Explore India’s premier marine sanctuary with turquoise crystal shallows and vibrant coral reefs.',
+        date: '20 Aug 2026',
+        img: '/assets/img/blog/1.jpg',
+        href: '/post',
+    },
+    {
+        title: 'Sikkim Monasteries & Kangchenjunga Sunrise Escapes',
+        desc: 'Peaceful Himalayan retreats, ancient Buddhist gompas, and rhododendron valleys in Pelling and Gangtok.',
+        date: '18 Aug 2026',
+        img: '/assets/img/blog/2.jpg',
+        href: '/post',
+    },
+];
 
 export default function BlogGrid() {
-    const posts = [
-        {
-            title: 'Exploring the hidden Maldives paradise',
-            desc: 'Discover a world where turquoise waters meet endless white sands in the heart of the Indian Ocean.',
-            date: '28 Dec 2026',
-            img: '/assets/img/blog/1.jpg',
-            href: '/post',
-        },
-        {
-            title: 'Journey through Canada’s wild beauty',
-            desc: 'Discover vast landscapes of towering mountains, crystal-clear lakes, and endless forests across Canada.',
-            date: '26 Dec 2026',
-            img: '/assets/img/blog/2.jpg',
-            href: '/post',
-        },
-        {
-            title: 'Experience the luxury of modern Dubai',
-            desc: 'Discover a city where futuristic skylines meet golden deserts, blending luxury and innovation.',
-            date: '24 Dec 2026',
-            img: '/assets/img/blog/3.jpg',
-            href: '/post',
-        },
-        {
-            title: 'Experience the spirit of Africa',
-            desc: 'Discover a continent where vast savannas, stunning landscapes create an unforgettable journey of adventure.',
-            date: '22 Dec 2026',
-            img: '/assets/img/blog/4.jpg',
-            href: '/post',
-        },
-        {
-            title: 'Exploring the hidden Maldives paradise',
-            desc: 'Discover a world where turquoise waters meet endless white sands in the heart of the Indian Ocean.',
-            date: '28 Dec 2026',
-            img: '/assets/img/blog/1.jpg',
-            href: '/post',
-        },
-        {
-            title: 'Journey through Canada’s wild beauty',
-            desc: 'Discover vast landscapes of towering mountains, crystal-clear lakes, and endless forests across Canada.',
-            date: '26 Dec 2026',
-            img: '/assets/img/blog/2.jpg',
-            href: '/post',
-        },
-    ];
+    const [posts, setPosts] = useState(fallbackPosts);
+
+    useEffect(() => {
+        let isMounted = true;
+        getCollectionItems('posts', []).then((data) => {
+            if (isMounted && data && data.length > 0) {
+                const mapped = data.map((p) => ({
+                    title: p.title,
+                    desc: p.excerpt || p.leadText1 || 'Travel journal article by Wayouts.',
+                    date: p.date || p.publishDate || '28 Aug 2026',
+                    img: p.image || p.bannerImage || '/assets/img/blog/1.jpg',
+                    href: '/post',
+                }));
+                setPosts(mapped);
+            }
+        });
+        return () => {
+            isMounted = false;
+        };
+    }, []);
 
     return (
         <section className="blog-home section-padding">

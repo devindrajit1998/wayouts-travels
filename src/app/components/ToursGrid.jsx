@@ -1,42 +1,92 @@
-export default function ToursGrid() {
-    const tourList = [
-        {
-            title: 'Maldives Paradise',
-            location: 'Maldives, Asia',
-            duration: '6 Days - 5 Nights',
-            rating: '4.9',
-            price: '$499',
-            img: '/assets/img/destination/01.jpg',
-            href: '/tour-details',
-        },
-        {
-            title: 'Dubai Luxury Journey',
-            location: 'Dubai, UAE',
-            duration: '5 Days - 4 Nights',
-            rating: '4.8',
-            price: '$699',
-            img: '/assets/img/destination/03.jpg',
-            href: '/tour-details',
-        },
-        {
-            title: 'Canadian Nature Tour',
-            location: 'Banff, Canada',
-            duration: '7 Days - 6 Nights',
-            rating: '4.9',
-            price: '$799',
-            img: '/assets/img/destination/02.jpg',
-            href: '/tour-details',
-        },
-        {
-            title: 'Greek Paradise Tour',
-            location: 'Santorini, Greece',
-            duration: '7 Days - 6 Nights',
-            rating: '4.8',
-            price: '$899',
-            img: '/assets/img/destination/05.jpg',
-            href: '/tour-details',
-        },
-    ];
+'use client';
+
+import { useState, useEffect } from 'react';
+import { getCollectionItems } from '../../lib/firestoreService';
+
+const fallbackTours = [
+    {
+        title: 'Kashmir & Ladakh Paradise Escape',
+        location: 'Kashmir, North India',
+        duration: '6 Days - 5 Nights',
+        rating: '4.9',
+        price: '₹24,999',
+        img: '/assets/img/destination/01.jpg',
+        href: '/tour-details',
+    },
+    {
+        title: 'Kerala Backwaters & Munnar Tea Trails',
+        location: 'Kerala, South India',
+        duration: '5 Days - 4 Nights',
+        rating: '4.9',
+        price: '₹19,999',
+        img: '/assets/img/destination/03.jpg',
+        href: '/tour-details',
+    },
+    {
+        title: 'Royal Rajasthan Heritage Circuit',
+        location: 'Rajasthan, West India',
+        duration: '7 Days - 6 Nights',
+        rating: '4.8',
+        price: '₹22,999',
+        img: '/assets/img/destination/02.jpg',
+        href: '/tour-details',
+    },
+    {
+        title: 'Sikkim & Darjeeling Himalayan Explorer',
+        location: 'Sikkim, East India',
+        duration: '6 Days - 5 Nights',
+        rating: '4.9',
+        price: '₹21,499',
+        img: '/assets/img/destination/05.jpg',
+        href: '/tour-details',
+    },
+    {
+        title: 'Goa Coastal Serenity & Cruise',
+        location: 'Goa, West India',
+        duration: '5 Days - 4 Nights',
+        rating: '4.7',
+        price: '₹17,999',
+        img: '/assets/img/destination/04.jpg',
+        href: '/tour-details',
+    },
+    {
+        title: 'Andaman Island Coral Reefs & Scuba',
+        location: 'Andaman & Nicobar Islands',
+        duration: '6 Days - 5 Nights',
+        rating: '4.9',
+        price: '₹29,999',
+        img: '/assets/img/destination/06.jpg',
+        href: '/tour-details',
+    },
+];
+
+export default function ToursGrid({
+    subtitle = 'Best Tour Packages',
+    title1 = 'Experience the best',
+    title2 = 'Indian holiday tours.',
+}) {
+    const [tours, setTours] = useState(fallbackTours);
+
+    useEffect(() => {
+        let isMounted = true;
+        getCollectionItems('tours', []).then((data) => {
+            if (isMounted && data && data.length > 0) {
+                const mapped = data.map((t) => ({
+                    title: t.name,
+                    location: t.destination || 'India',
+                    duration: t.duration || '5 Days - 4 Nights',
+                    rating: t.rating || '4.9',
+                    price: t.price || '₹24,999',
+                    img: t.image || '/assets/img/destination/01.jpg',
+                    href: t.href || '/tour-details',
+                }));
+                setTours(mapped);
+            }
+        });
+        return () => {
+            isMounted = false;
+        };
+    }, []);
 
     return (
         <section className="tours section-padding">
@@ -44,11 +94,15 @@ export default function ToursGrid() {
                 <div className="row tours-isotope">
                     <div className="col-md-6 items">
                         <div className="mb-30">
-                            <div className="section-subtitle">Best Tour Packages</div>
-                            <div className="section-title">Experience the best<br />travel tours<i>.</i></div>
+                            {subtitle && <div className="section-subtitle">{subtitle}</div>}
+                            <div className="section-title">
+                                {title1}
+                                <br />
+                                {title2}
+                            </div>
                         </div>
                     </div>
-                    {tourList.map((tour, index) => (
+                    {tours.map((tour, index) => (
                         <div className="col-md-6 items" key={index}>
                             <div className="item">
                                 <div className="tour-media">

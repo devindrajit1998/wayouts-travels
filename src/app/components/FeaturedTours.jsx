@@ -1,12 +1,38 @@
 'use client';
 
+import { useState, useEffect } from 'react';
 import { defaultHomeContent } from '../../lib/homeContent';
+import { getCollectionItems } from '../../lib/firestoreService';
 
 /**
- * Data-driven Featured Tours section. Content is editable from /admin/home (Featured Tours tab).
+ * Data-driven Featured Tours section. Content is editable from /admin/home (Featured Tours tab)
+ * and automatically pulls live items from Firestore 'tours' collection.
  */
 export default function FeaturedTours({ content = defaultHomeContent.featuredTours }) {
-    const { subtitle, titlePart1, titlePart2, description, buttonText, buttonLink, tours } = content;
+    const { subtitle, titlePart1, titlePart2, description, buttonText, buttonLink } = content;
+    const [toursList, setToursList] = useState(content.tours || defaultHomeContent.featuredTours.tours);
+
+    useEffect(() => {
+        let isMounted = true;
+        getCollectionItems('tours', []).then((items) => {
+            if (isMounted && items && items.length > 0) {
+                const mapped = items.slice(0, 4).map((t) => ({
+                    location: t.location || t.destination || 'India',
+                    title: t.title || t.name,
+                    duration: t.duration || '6 Days / 5 Nights',
+                    price: t.price ? (t.price.toString().startsWith('₹') ? t.price : `₹${t.price}`) : '₹24,999',
+                    priceUnit: t.priceUnit || '/ person',
+                    rating: t.rating || '4.9',
+                    image: t.image || t.coverImage || '/assets/img/destination/01.jpg',
+                    link: t.link || '/tours'
+                }));
+                setToursList(mapped);
+            }
+        });
+        return () => {
+            isMounted = false;
+        };
+    }, []);
 
     return (
         <section className="tours stsec section-padding">
@@ -37,7 +63,7 @@ export default function FeaturedTours({ content = defaultHomeContent.featuredTou
                         </div>
                     </div>
                     <div className="col-lg-7 offset-lg-1 items">
-                        {tours.map((tour, index) => (
+                        {toursList.map((tour, index) => (
                             <div className="item" key={index}>
                                 <div className="tour-media">
                                     <img src={tour.image} alt="" className="height2" data-speed="0.8" data-lag="0" />

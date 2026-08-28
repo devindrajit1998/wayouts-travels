@@ -3,6 +3,7 @@ import ScriptLoader from './components/ScriptLoader';
 import Preloader from './components/Preloader';
 import Cursor from './components/Cursor';
 import ProgressWrap from './components/ProgressWrap';
+import GlobalFeatures from './components/GlobalFeatures';
 
 export const metadata = {
     title: 'Wayouts — Luxury Travel & Adventure Tours',
@@ -26,6 +27,8 @@ export default function RootLayout({ children }) {
                 <link rel="stylesheet" href="/assets/css/style.css" />
             </head>
             <body>
+                {/* Global Notification & Interactive Features */}
+                <GlobalFeatures />
                 {/* Preloader */}
                 <Preloader />
                 {/* Cursor */}

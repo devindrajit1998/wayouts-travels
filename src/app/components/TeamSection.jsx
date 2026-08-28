@@ -1,10 +1,34 @@
+'use client';
+
+import { useState, useEffect } from 'react';
+import { getCollectionItems } from '../../lib/firestoreService';
+
+const fallbackTeam = [
+    { name: 'Ananya Roy', role: 'Kolkata Head of Domestic Holidays', img: '/assets/img/team/1.jpg' },
+    { name: 'Rohit Sen', role: 'Senior Kashmir & Ladakh Specialist', img: '/assets/img/team/2.jpg' },
+    { name: 'Pooja Bhattacharya', role: 'Kerala & South India Curator', img: '/assets/img/team/3.jpg' },
+    { name: 'Debashis Das', role: 'Flight & Luxury Logistics Expert', img: '/assets/img/team/4.jpg' },
+];
+
 export default function TeamSection({ title = 'Meet the Wayouts Team', subtitle = 'Travel Advisors' }) {
-    const members = [
-        { name: 'Jason Walker', role: 'Adventure Specialist', img: '/assets/img/team/1.jpg' },
-        { name: 'Emma Watson', role: 'Tour Manager', img: '/assets/img/team/2.jpg' },
-        { name: 'David Smith', role: 'Luxury Guide', img: '/assets/img/team/3.jpg' },
-        { name: 'Sophia Miller', role: 'Travel Consultant', img: '/assets/img/team/4.jpg' },
-    ];
+    const [teamList, setTeamList] = useState(fallbackTeam);
+
+    useEffect(() => {
+        let isMounted = true;
+        getCollectionItems('team', []).then((items) => {
+            if (isMounted && items && items.length > 0) {
+                const mapped = items.map((m) => ({
+                    name: m.name || m.fullName,
+                    role: m.role || m.designation || 'Holiday Specialist',
+                    img: m.image || m.img || '/assets/img/team/1.jpg'
+                }));
+                setTeamList(mapped);
+            }
+        });
+        return () => {
+            isMounted = false;
+        };
+    }, []);
 
     return (
         <section className="team section-padding">
@@ -20,7 +44,7 @@ export default function TeamSection({ title = 'Meet the Wayouts Team', subtitle 
                     <div className="col-md-12">
                         <div className="swiper team-slider">
                             <div className="swiper-wrapper">
-                                {members.map((member, index) => (
+                                {teamList.map((member, index) => (
                                     <div className="swiper-slide" key={index}>
                                         <div className="item">
                                             <div className="wrapper">

@@ -1068,7 +1068,7 @@ blockquote.vert-move {
     position: absolute;
     margin-top: 0;
     left: 0;
-    top: 0;
+    top: var(--announcement-bar-height, 0px);
     width: 100%;
     background: transparent;
     z-index: 999;
@@ -1079,6 +1079,7 @@ blockquote.vert-move {
     height: 100px;
     border: none;
     border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    transition: top 0.3s ease;
 }
 
 .navbar-toggler-icon {
@@ -1092,8 +1093,8 @@ blockquote.vert-move {
 
 .navbar .navbar-nav .nav-link {
     font-family: var(--font-secondary);
-    font-size: 19px;
-    font-weight: 600;
+    font-size: 18px;
+    font-weight: 300;
     color: #ffffff;
     margin: 1px;
     -webkit-transition: all .4s;
@@ -1102,7 +1103,7 @@ blockquote.vert-move {
     padding-left: 14px;
     line-height: 10px !important;
     text-transform: uppercase;
-    letter-spacing: 0.5px;
+    letter-spacing: 1px;
 }
 
 .navbar .navbar-nav .nav-link .rolling-text {
@@ -2675,11 +2676,22 @@ header .post .date-comment:last-of-type {
 
 .services .item {
     position: relative;
-    padding: 40px;
+    padding: 36px 20px;
     background: var(--clr-bg-white);
     border-radius: 24px;
     text-align: center;
     box-shadow: 0 10px 30px rgba(15, 36, 84, 0.04), 0 20px 60px rgba(15, 36, 84, 0.06);
+    min-height: 220px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    transition: transform 0.35s ease, box-shadow 0.35s ease;
+}
+
+.services .item:hover {
+    transform: translateY(-6px);
+    box-shadow: 0 16px 40px rgba(15, 36, 84, 0.12);
 }
 
 .services .item:hover .arrow {
@@ -2718,9 +2730,12 @@ header .post .date-comment:last-of-type {
 }
 
 .services .item h5 {
-    font-size: 24px;
+    font-size: 20px;
+    line-height: 1.25;
     color: var(--clr-heading);
-    margin-bottom: 10px;
+    margin-bottom: 0;
+    margin-top: 12px;
+    font-weight: 600;
 }
 
 .services .item p {
@@ -2728,10 +2743,10 @@ header .post .date-comment:last-of-type {
 }
 
 .services .item .icon {
-    font-size: 50px;
+    font-size: 44px;
     color: var(--clr-primary);
     line-height: 1;
-    margin-bottom: 10px;
+    margin-bottom: 4px;
     display: inline-block;
     -webkit-transition: .5s;
     transition: .5s;
@@ -3690,21 +3705,28 @@ header .post .date-comment:last-of-type {
 
 .destination .item .cont .wrap {
     background: var(--clr-bg-white);
-    border-radius: 15px;
+    border-radius: 18px;
     z-index: 1;
     position: relative;
     overflow: hidden;
-    padding: 15px 20px;
+    padding: 16px 22px;
     display: flex;
-    align-items: center
+    align-items: center;
+    justify-content: space-between;
+    gap: 14px;
+    min-height: 84px;
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.12);
 }
 
 .destination .item .cont .title {
     color: var(--clr-heading);
-    font-size: 24px;
+    font-size: 22px;
     font-family: var(--font-secondary);
-    line-height: 20px;
-    font-weight: var(--fw-medium);
+    line-height: 1.25;
+    font-weight: 600;
+    margin: 0;
+    flex: 1 1 auto;
+    text-align: left;
 }
 
 .destination .item .cont .link {
@@ -3712,6 +3734,8 @@ header .post .date-comment:last-of-type {
     margin-left: auto;
     z-index: 1;
     overflow: hidden;
+    flex-shrink: 0;
+    text-align: right;
 }
 
 .destination .item .cont .link .category {
@@ -3720,7 +3744,10 @@ header .post .date-comment:last-of-type {
     opacity: 1;
     visibility: visible;
     color: var(--clr-body);
-    font-size: 15px;
+    font-size: 13px;
+    line-height: 1.4;
+    font-weight: 500;
+    white-space: nowrap;
 }
 
 .destination .item .cont .link i {

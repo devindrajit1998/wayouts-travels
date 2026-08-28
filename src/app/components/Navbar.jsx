@@ -2,6 +2,9 @@
 
 import { useState, useEffect } from 'react';
 import { usePathname } from 'next/navigation';
+import { auth } from '../../lib/firebase';
+import { onAuthStateChanged } from 'firebase/auth';
+import { isAdminUser } from '../../lib/authUtils';
 
 const navLinks = [
     { href: '/', label: 'HOME', key: 'home' },
@@ -15,7 +18,15 @@ const navLinks = [
 
 export default function Navbar({ active = '', theme = 'auto' }) {
     const [menuOpen, setMenuOpen] = useState(false);
+    const [user, setUser] = useState(null);
     const pathname = usePathname();
+
+    useEffect(() => {
+        const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
+            setUser(currentUser);
+        });
+        return () => unsubscribe();
+    }, []);
 
     // If active is not 'home', it is an inner page
     const isInner = theme === 'inner' || (theme === 'auto' && active !== 'home' && active !== '404');
@@ -64,10 +75,49 @@ export default function Navbar({ active = '', theme = 'auto' }) {
                                 </li>
                             ))}
                             <li className="nav-item nav-btn-item ms-lg-3">
-                                <a href="/login" className="nav-login-btn">
-                                    <i className="fa-light fa-circle-user"></i>
-                                    <span>LOGIN</span>
-                                </a>
+                                {user ? (
+                                    <a
+                                        href={isAdminUser(user) ? '/admin' : '/dashboard'}
+                                        className="nav-login-btn"
+                                        style={{ gap: '8px' }}
+                                    >
+                                        {user.photoURL ? (
+                                            <img
+                                                src={user.photoURL}
+                                                alt={user.displayName || 'User'}
+                                                style={{
+                                                    width: '24px',
+                                                    height: '24px',
+                                                    borderRadius: '50%',
+                                                    objectFit: 'cover'
+                                                }}
+                                            />
+                                        ) : (
+                                            <span style={{
+                                                width: '24px',
+                                                height: '24px',
+                                                borderRadius: '50%',
+                                                background: '#00c2cb',
+                                                color: '#09204c',
+                                                display: 'inline-flex',
+                                                alignItems: 'center',
+                                                justifyContent: 'center',
+                                                fontSize: '11px',
+                                                fontWeight: '800'
+                                            }}>
+                                                {user.displayName ? user.displayName.slice(0, 2).toUpperCase() : (user.email ? user.email.slice(0, 2).toUpperCase() : 'ME')}
+                                            </span>
+                                        )}
+                                        <span style={{ textTransform: 'uppercase' }}>
+                                            {user.displayName ? user.displayName.split(' ')[0] : (user.email ? user.email.split('@')[0] : 'ACCOUNT')}
+                                        </span>
+                                    </a>
+                                ) : (
+                                    <a href="/login" className="nav-login-btn">
+                                        <i className="fa-light fa-circle-user"></i>
+                                        <span>LOGIN</span>
+                                    </a>
+                                )}
                             </li>
                         </ul>
                     </div>

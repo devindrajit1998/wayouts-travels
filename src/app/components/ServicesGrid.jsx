@@ -1,42 +1,69 @@
-export default function ServicesGrid() {
-    const services = [
-        {
-            title: 'Custom Tour Packages',
-            desc: 'Personalized travel plans tailored to your interests and budget.',
-            icon: 'fa-thin fa-route',
-            slide: 'duru-slide-right',
-        },
-        {
-            title: 'Flight Booking',
-            desc: 'Fast and secure flight reservations at the best available prices.',
-            icon: 'fa-thin fa-plane-departure',
-            slide: 'duru-slide-right',
-        },
-        {
-            title: 'Hotel & Accommodation',
-            desc: 'Comfortable and premium accommodation options worldwide.',
-            icon: 'fa-thin fa-hotel',
-            slide: 'duru-slide-right',
-        },
-        {
-            title: 'Visa Assistance',
-            desc: 'Professional support for all your travel visa procedures.',
-            icon: 'fa-thin fa-passport',
-            slide: 'duru-slide-left',
-        },
-        {
-            title: 'Transfer Services',
-            desc: 'Reliable airport and city transfer solutions for stress-free travel.',
-            icon: 'fa-thin fa-van-shuttle',
-            slide: 'duru-slide-left',
-        },
-        {
-            title: '24/7 Customer Support',
-            desc: 'Dedicated support available anytime during your journey.',
-            icon: 'fa-thin fa-headset',
-            slide: 'duru-slide-left',
-        },
-    ];
+'use client';
+
+import { useState, useEffect } from 'react';
+import { getCollectionItems } from '../../lib/firestoreService';
+
+const fallbackServices = [
+    {
+        title: 'Custom India Tour Packages',
+        desc: 'Personalized private itineraries across Kashmir, Kerala, Rajasthan, Sikkim, and Andaman.',
+        icon: 'fa-thin fa-route',
+        slide: 'duru-slide-right',
+    },
+    {
+        title: 'Domestic Flights & CCU Transfers',
+        desc: 'Direct flight ticketing, private airport transfers from Kolkata and across all Indian metro cities.',
+        icon: 'fa-thin fa-plane-departure',
+        slide: 'duru-slide-right',
+    },
+    {
+        title: 'Heritage Palace & Houseboat Stays',
+        desc: 'Handpicked 5-star royal palaces in Rajasthan, Himalayan pine cottages, and luxury wooden houseboats in Alleppey.',
+        icon: 'fa-thin fa-hotel',
+        slide: 'duru-slide-right',
+    },
+    {
+        title: 'Private Chauffeur & Cab Rentals',
+        desc: 'Reliable sanitized Innova Crysta and luxury coach fleets with experienced local drivers.',
+        icon: 'fa-thin fa-van-shuttle',
+        slide: 'duru-slide-left',
+    },
+    {
+        title: 'Adventure & Scuba Certification',
+        desc: 'PADI certified diving in Havelock Andaman, paragliding in Solang, and Gondola rides in Gulmarg.',
+        icon: 'fa-thin fa-person-hiking',
+        slide: 'duru-slide-left',
+    },
+    {
+        title: '24/7 On-Trip Concierge Support',
+        desc: 'Dedicated WhatsApp and on-ground emergency travel coordinators for complete peace of mind.',
+        icon: 'fa-thin fa-headset',
+        slide: 'duru-slide-left',
+    },
+];
+
+export default function ServicesGrid({
+    quoteText = 'WAYOUTS transforms journeys into unforgettable experiences.',
+}) {
+    const [services, setServices] = useState(fallbackServices);
+
+    useEffect(() => {
+        let isMounted = true;
+        getCollectionItems('services', []).then((data) => {
+            if (isMounted && data && data.length > 0) {
+                const mapped = data.map((s, index) => ({
+                    title: s.name,
+                    desc: s.description || 'Premium curated travel services by Wayouts.',
+                    icon: s.icon ? (s.icon.startsWith('fa-') ? `fa-thin ${s.icon}` : s.icon) : 'fa-thin fa-route',
+                    slide: index % 2 === 0 ? 'duru-slide-right' : 'duru-slide-left',
+                }));
+                setServices(mapped);
+            }
+        });
+        return () => {
+            isMounted = false;
+        };
+    }, []);
 
     return (
         <section className="services section-padding">
@@ -57,7 +84,7 @@ export default function ServicesGrid() {
                     <div className="col-md-12 text-center mt-30 duru-slide-right">
                         <div className="section-info">
                             <div className="tag duru-rotate-on-scroll"><i className="icon fa-thin fa-plane-departure"></i></div>
-                            <div className="desc"><span className="text-decoration-line-bottom">WAYOUTS</span> transforms journeys into unforgettable experiences.</div>
+                            <div className="desc">{quoteText}</div>
                         </div>
                     </div>
                 </div>

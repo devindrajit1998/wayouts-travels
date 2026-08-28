@@ -1,9 +1,25 @@
 'use client';
 
+import { useState, useEffect } from 'react';
 import Navbar from '../components/Navbar';
 import Footer from '../components/Footer';
+import { defaultPagesContent, getPagesContent } from '../../lib/pagesContent';
 
 export default function Page() {
+  const [postMeta, setPostMeta] = useState(defaultPagesContent.post);
+
+  useEffect(() => {
+    let isMounted = true;
+    getPagesContent().then((data) => {
+      if (isMounted && data?.post) {
+        setPostMeta(data.post);
+      }
+    });
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
   return (
     <>
       <Navbar active="" extendedPages={false} />
@@ -14,11 +30,17 @@ export default function Page() {
                     <div className="container">
                         <div className="row mb-60 justify-content-center">
                             <div className="col-md-6 text-center">
-                                <div className="section-subtitle">Latest Travel News</div>
-                                <div className="section-title">Experience the luxury of modern <i>Dubai</i></div>
+                                <div className="section-subtitle">{postMeta.bannerSubtitle || 'Latest Travel News'}</div>
+                                <div className="section-title">
+                                    {postMeta.bannerTitle || 'Experience the luxury of modern'}{' '}
+                                    <i>{postMeta.bannerHighlight || 'Dubai'}</i>
+                                </div>
                                 <div className="post">
-                                    <div className="author"> <img src="/assets/img/team/tst1.jpg" alt="" className="avatar" /> <span>Emily Brown</span> </div>
-                                    <div className="date-comment"> <i className="ti-calendar"></i> 27 Dec 2026</div>
+                                    <div className="author">
+                                        <img src={postMeta.authorAvatar || '/assets/img/team/tst1.jpg'} alt="" className="avatar" />
+                                        <span>{postMeta.authorName || 'Emily Brown'}</span>
+                                    </div>
+                                    <div className="date-comment"> <i className="ti-calendar"></i> {postMeta.postDate || '27 Dec 2026'}</div>
                                 </div>
                             </div>
                         </div>
@@ -28,8 +50,8 @@ export default function Page() {
                             <div className="radius-mask">
                                 <div
                                     className="bg-img height2"
-                                    data-background="/assets/img/destination/03.jpg"
-                                    style={{ backgroundImage: 'url(/assets/img/destination/03.jpg)' }}
+                                    data-background={postMeta.bannerImage || '/assets/img/destination/03.jpg'}
+                                    style={{ backgroundImage: `url(${postMeta.bannerImage || '/assets/img/destination/03.jpg'})` }}
                                     data-speed="0.5"
                                     data-lag="0"
                                 ></div>
@@ -42,11 +64,15 @@ export default function Page() {
                     <div className="container">
                         <div className="row mb-30">
                             <div className="col-lg-8 col-md-12">
-                                <p><span className="first-letter">E</span>Experience the vibrant charm of Dubai, where futuristic architecture meets rich culture and world-class luxury. Discover iconic landmarks such as the Burj Khalifa, Palm Jumeirah, and Dubai Marina, each offering a unique perspective of this extraordinary city.</p>
+                                <p>
+                                    <span className="first-letter">{(postMeta.leadText1 || 'E')[0]}</span>
+                                    {(postMeta.leadText1 || 'Experience the vibrant charm of Dubai...').slice(1)}
+                                </p>
                             </div>
                             <div className="col-lg-3 offset-lg-1 col-md-12 mb-30">
                                 <blockquote className="vert-move">
-                                    <p>Dubai is not a city, it’s a vision of the future.</p> <cite>Anonymous</cite>
+                                    <p>{postMeta.leadQuote || 'Dubai is not a city, it’s a vision of the future.'}</p>
+                                    <cite>{postMeta.leadQuoteCite || 'Anonymous'}</cite>
                                 </blockquote>
                             </div>
                         </div>
@@ -62,10 +88,10 @@ export default function Page() {
                         </section>
                         <div className="row justify-content-center mb-60 pt-30">
                             <div className="col-md-6">
-                                <p>From desert safaris and traditional souks to luxury shopping malls and fine dining experiences, Dubai offers something for every type of traveler. Whether you are seeking adventure, relaxation, or cultural exploration, this dynamic destination promises unforgettable moments at every turn.</p>
+                                <p>{postMeta.bodyParagraph1 || 'From desert safaris and traditional souks to luxury shopping malls...'}</p>
                             </div>
                             <div className="col-md-5 offset-md-1">
-                                <p>Immerse yourself in the energy of the city and experience the perfect blend of tradition and modernity that defines Dubai today. As day turns into night, Dubai transforms into a glowing masterpiece of lights, offering unforgettable dining, entertainment, and leisure experiences.</p>
+                                <p>{postMeta.bodyParagraph2 || 'Immerse yourself in the energy of the city and experience the perfect blend...'}</p>
                             </div>
                         </div>
                         <div className="post-comment-section">
@@ -73,10 +99,10 @@ export default function Page() {
                                 {/* Comment */}
                                 <div className="col-md-6 mb-30">
                                     <div className="post-comment-wrap">
-                                        <div className="post-user-comment"><img src="/assets/img/team/g1.jpg" alt="" /></div>
+                                        <div className="post-user-comment"><img src={postMeta.commentAvatar || '/assets/img/team/g1.jpg'} alt="" /></div>
                                         <div className="post-user-content">
-                                            <h5>Emily Brown <span>[ Traveler ]</span></h5>
-                                            <p>Dubai was an unforgettable journey, where modern luxury meets rich tradition. Every moment felt unique, from the skyline views to the desert experiences. <i className="fa-solid fa-thumbs-up"></i></p>
+                                            <h5>{postMeta.commentUser || 'Emily Brown'} <span>[ {postMeta.commentRole || 'Traveler'} ]</span></h5>
+                                            <p>{postMeta.commentText || 'Dubai was an unforgettable journey...'} <i className="fa-solid fa-thumbs-up"></i></p>
                                         </div>
                                     </div>
                                 </div>

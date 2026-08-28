@@ -14,14 +14,18 @@ function Status({ value }) {
 
 const sectionMeta = {
     bookings: ['Bookings', 'Review reservations, payment values, and upcoming departures.'],
-    tours: ['Tours', 'Manage the travel packages displayed across the website.'],
+    tours: ['Tours & Packages', 'Manage the travel packages displayed across the website.'],
     destinations: ['Destinations', 'Organize destination pages and their available experiences.'],
     customers: ['Customers', 'View traveler profiles, trip history, and account value.'],
-    inquiries: ['Inquiries', 'Keep track of pre-booking questions from every channel.'],
-    reviews: ['Reviews', 'Moderate traveler feedback and featured testimonials.'],
-    posts: ['Blog posts', 'Plan and maintain stories for the travel journal.'],
-    team: ['Team', 'Manage guides, specialists, and guest experience staff.'],
-    settings: ['Settings', 'Configure the business profile and booking preferences.'],
+    inquiries: ['Contact Inquiries', 'Keep track of pre-booking questions from every channel.'],
+    reviews: ['Testimonials & Reviews', 'Moderate traveler feedback and featured testimonials.'],
+    testimonials: ['Testimonials & Reviews', 'Moderate traveler feedback and featured testimonials.'],
+    posts: ['Blog & Articles', 'Plan and maintain stories for the travel journal.'],
+    services: ['Services', 'Manage the service offerings displayed across the site.'],
+    faqs: ['FAQs', 'Manage frequently asked questions and category answers.'],
+    subscribers: ['Newsletter Leads', 'Manage subscribed email leads from website newsletter forms.'],
+    team: ['Team Experts', 'Manage guides, specialists, and guest experience staff.'],
+    settings: ['Settings & Brand', 'Configure business contact info, branding, and booking preferences.'],
 };
 
 export default function AdminSection({ section }) {
@@ -44,6 +48,7 @@ export default function AdminSection({ section }) {
             customers: mockCustomers,
             inquiries: mockInquiries,
             reviews: mockReviews,
+            testimonials: mockReviews,
             posts: mockPosts,
             team: mockTeam,
         };
@@ -117,7 +122,7 @@ export default function AdminSection({ section }) {
                                     <input placeholder="Tour title" required onChange={(e) => setNewItem({ ...newItem, name: e.target.value })} style={{ padding: '10px', borderRadius: '6px', border: '1px solid var(--admin-line)' }} />
                                     <input placeholder="Destination" required onChange={(e) => setNewItem({ ...newItem, destination: e.target.value })} style={{ padding: '10px', borderRadius: '6px', border: '1px solid var(--admin-line)' }} />
                                     <input placeholder="Duration (e.g. 5 Days)" required onChange={(e) => setNewItem({ ...newItem, duration: e.target.value })} style={{ padding: '10px', borderRadius: '6px', border: '1px solid var(--admin-line)' }} />
-                                    <input placeholder="Price (e.g. $499)" required onChange={(e) => setNewItem({ ...newItem, price: e.target.value })} style={{ padding: '10px', borderRadius: '6px', border: '1px solid var(--admin-line)' }} />
+                                    <input placeholder="Price (e.g. ₹39,999)" required onChange={(e) => setNewItem({ ...newItem, price: e.target.value })} style={{ padding: '10px', borderRadius: '6px', border: '1px solid var(--admin-line)' }} />
                                 </>
                             )}
                             {section === 'destinations' && (
@@ -141,8 +146,29 @@ export default function AdminSection({ section }) {
                                     <input placeholder="Email" type="email" required onChange={(e) => setNewItem({ ...newItem, email: e.target.value })} style={{ padding: '10px', borderRadius: '6px', border: '1px solid var(--admin-line)' }} />
                                 </>
                             )}
-                            {['bookings', 'customers', 'inquiries', 'reviews'].includes(section) && (
-                                <input placeholder="Name / Title" required onChange={(e) => setNewItem({ ...newItem, guest: e.target.value, name: e.target.value, from: e.target.value })} style={{ padding: '10px', borderRadius: '6px', border: '1px solid var(--admin-line)' }} />
+                            {section === 'services' && (
+                                <>
+                                    <input placeholder="Service title (e.g. Custom Tour Packages)" required onChange={(e) => setNewItem({ ...newItem, title: e.target.value })} style={{ padding: '10px', borderRadius: '6px', border: '1px solid var(--admin-line)' }} />
+                                    <input placeholder="Icon class (e.g. fa-earth-americas, fa-plane)" defaultValue="fa-earth-americas" onChange={(e) => setNewItem({ ...newItem, icon: e.target.value })} style={{ padding: '10px', borderRadius: '6px', border: '1px solid var(--admin-line)' }} />
+                                    <input placeholder="Link (e.g. /service-details)" defaultValue="/service-details" onChange={(e) => setNewItem({ ...newItem, link: e.target.value })} style={{ padding: '10px', borderRadius: '6px', border: '1px solid var(--admin-line)' }} />
+                                    <textarea placeholder="Short description" onChange={(e) => setNewItem({ ...newItem, description: e.target.value })} style={{ padding: '10px', borderRadius: '6px', border: '1px solid var(--admin-line)' }} />
+                                </>
+                            )}
+                            {section === 'faqs' && (
+                                <>
+                                    <input placeholder="Question (e.g. Flight Booking)" required onChange={(e) => setNewItem({ ...newItem, question: e.target.value })} style={{ padding: '10px', borderRadius: '6px', border: '1px solid var(--admin-line)' }} />
+                                    <input placeholder="Icon class (e.g. fa-circle-question, fa-plane)" defaultValue="fa-circle-question" onChange={(e) => setNewItem({ ...newItem, icon: e.target.value })} style={{ padding: '10px', borderRadius: '6px', border: '1px solid var(--admin-line)' }} />
+                                    <textarea placeholder="Answer text" required onChange={(e) => setNewItem({ ...newItem, answer: e.target.value })} style={{ padding: '10px', borderRadius: '6px', border: '1px solid var(--admin-line)' }} />
+                                </>
+                            )}
+                            {section === 'subscribers' && (
+                                <>
+                                    <input placeholder="Subscriber email" type="email" required onChange={(e) => setNewItem({ ...newItem, email: e.target.value })} style={{ padding: '10px', borderRadius: '6px', border: '1px solid var(--admin-line)' }} />
+                                    <input placeholder="Source form (e.g. Homepage Footer)" defaultValue="Admin Entry" onChange={(e) => setNewItem({ ...newItem, source: e.target.value })} style={{ padding: '10px', borderRadius: '6px', border: '1px solid var(--admin-line)' }} />
+                                </>
+                            )}
+                            {['bookings', 'customers', 'inquiries', 'reviews', 'testimonials'].includes(section) && (
+                                <input placeholder="Name / Title / Guest" required onChange={(e) => setNewItem({ ...newItem, guest: e.target.value, name: e.target.value, from: e.target.value, title: e.target.value })} style={{ padding: '10px', borderRadius: '6px', border: '1px solid var(--admin-line)' }} />
                             )}
                             <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px', marginTop: '10px' }}>
                                 <button type="button" onClick={() => setShowAddModal(false)} style={{ padding: '10px 16px', borderRadius: '6px', border: '1px solid var(--admin-line)', background: '#fff', cursor: 'pointer' }}>Cancel</button>
@@ -251,17 +277,72 @@ export default function AdminSection({ section }) {
                 </div>
             )}
 
-            {section === 'reviews' && (
+            {section === 'services' && (
                 <div className="admin-card admin-table-wrap">
                     <table className="admin-table">
-                        <thead><tr><th>Traveler</th><th>Tour</th><th>Rating</th><th>Review</th><th>Date</th><th>Status</th></tr></thead>
+                        <thead><tr><th>Service</th><th>Icon</th><th>Link</th><th>Description</th><th>Status</th></tr></thead>
+                        <tbody>
+                            {filteredData.map((item, index) => (
+                                <tr key={item.title || index}>
+                                    <td><strong>{item.title}</strong></td>
+                                    <td><i className={`fa-light ${item.icon || 'fa-earth-americas'}`} style={{ color: 'var(--admin-primary)', fontSize: '18px' }}></i></td>
+                                    <td>{item.link || '/service-details'}</td>
+                                    <td>{item.description || '—'}</td>
+                                    <td><Status value={item.status || 'Active'} /></td>
+                                </tr>
+                            ))}
+                        </tbody>
+                    </table>
+                </div>
+            )}
+
+            {section === 'faqs' && (
+                <div className="admin-card admin-table-wrap">
+                    <table className="admin-table">
+                        <thead><tr><th>Question</th><th>Icon</th><th>Answer</th><th>Status</th></tr></thead>
                         <tbody>
                             {filteredData.map((item, index) => (
                                 <tr key={index}>
-                                    <td><strong>{item.guest}</strong></td>
-                                    <td>{item.tour}</td>
+                                    <td><strong>{item.question}</strong></td>
+                                    <td><i className={`fa-light ${item.icon || 'fa-circle-question'}`} style={{ color: 'var(--admin-primary)', fontSize: '16px' }}></i></td>
+                                    <td>{item.answer}</td>
+                                    <td><Status value={item.status || 'Published'} /></td>
+                                </tr>
+                            ))}
+                        </tbody>
+                    </table>
+                </div>
+            )}
+
+            {section === 'subscribers' && (
+                <div className="admin-card admin-table-wrap">
+                    <table className="admin-table">
+                        <thead><tr><th>Email subscriber</th><th>Source form</th><th>Subscribed on</th><th>Status</th></tr></thead>
+                        <tbody>
+                            {filteredData.map((item, index) => (
+                                <tr key={item.email || index}>
+                                    <td><strong>{item.email}</strong></td>
+                                    <td>{item.source || 'Website'}</td>
+                                    <td>{item.date || 'Recent'}</td>
+                                    <td><Status value={item.status || 'Subscribed'} /></td>
+                                </tr>
+                            ))}
+                        </tbody>
+                    </table>
+                </div>
+            )}
+
+            {(section === 'reviews' || section === 'testimonials') && (
+                <div className="admin-card admin-table-wrap">
+                    <table className="admin-table">
+                        <thead><tr><th>Traveler</th><th>Tour / Category</th><th>Rating</th><th>Quote / Review</th><th>Date</th><th>Status</th></tr></thead>
+                        <tbody>
+                            {filteredData.map((item, index) => (
+                                <tr key={index}>
+                                    <td><strong>{item.guest || item.title}</strong></td>
+                                    <td>{item.tour || item.title || 'Tour'}</td>
                                     <td><span className="admin-rating">{'★'.repeat(Number(item.rating) || 5)}</span></td>
-                                    <td>{item.excerpt}</td>
+                                    <td>{item.excerpt || item.text}</td>
                                     <td>{item.date || 'Recent'}</td>
                                     <td><Status value={item.status || 'Published'} /></td>
                                 </tr>
