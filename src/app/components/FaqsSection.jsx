@@ -1,11 +1,40 @@
 'use client';
 
-import { defaultHomeContent } from '../../lib/homeContent';
+import { useState, useEffect } from 'react';
+import { getHomeContent } from '../../lib/homeContent';
+import { LoadingState, ErrorState } from './DataState';
 
 /**
- * Data-driven FAQs section. Content is editable from /admin/home (FAQs tab).
+ * Data-driven FAQs section. Content is editable from /admin/home (FAQs tab)
+ * and stored in Firestore (siteContent/home) — the single source of truth.
  */
-export default function FaqsSection({ content = defaultHomeContent.faqs }) {
+export default function FaqsSection({ content: initialContent = null }) {
+    const [content, setContent] = useState(initialContent);
+    const [error, setError] = useState(null);
+
+    useEffect(() => {
+        if (initialContent) return;
+        let isMounted = true;
+        getHomeContent()
+            .then((home) => {
+                if (isMounted) setContent(home ? home.faqs : null);
+            })
+            .catch((err) => {
+                console.error('Failed to load FAQs section:', err.message);
+                if (isMounted) setError(err);
+            });
+        return () => {
+            isMounted = false;
+        };
+    }, [initialContent]);
+
+    if (error) {
+        return <ErrorState label="We could not load the FAQs section. Please try again." />;
+    }
+    if (!content) {
+        return <LoadingState label="Loading FAQs…" />;
+    }
+
     const { subtitle, titlePart1, titlePart2, image1, image2, faqs, backgroundText } = content;
 
     return (
@@ -27,18 +56,20 @@ export default function FaqsSection({ content = defaultHomeContent.faqs }) {
                                 </span>
                             </div>
                         )}
-                        <ul className="accordion-box clearfix">
-                            {faqs.map((faq, index) => (
-                                <li className={`accordion block ${index === 0 ? 'active-block' : ''}`} key={index}>
-                                    <div className={`acc-btn ${index === 0 ? 'active' : ''}`}>{faq.question}</div>
-                                    <div className="acc-content" style={index === 0 ? { display: 'block' } : undefined}>
-                                        <div className="content">
-                                            <p>{faq.answer}</p> <i className={`fa-thin ${faq.icon}`}></i>
+                        {faqs && faqs.length > 0 && (
+                            <ul className="accordion-box clearfix">
+                                {faqs.map((faq, index) => (
+                                    <li className={`accordion block ${index === 0 ? 'active-block' : ''}`} key={index}>
+                                        <div className={`acc-btn ${index === 0 ? 'active' : ''}`}>{faq.question}</div>
+                                        <div className="acc-content" style={index === 0 ? { display: 'block' } : undefined}>
+                                            <div className="content">
+                                                <p>{faq.answer}</p> <i className={`fa-thin ${faq.icon}`}></i>
+                                            </div>
                                         </div>
-                                    </div>
-                                </li>
-                            ))}
-                        </ul>
+                                    </li>
+                                ))}
+                            </ul>
+                        )}
                     </div>
                 </div>
             </div>

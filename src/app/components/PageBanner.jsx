@@ -2,7 +2,7 @@ export default function PageBanner({
     subtitle,
     title,
     highlight,
-    bgImage = '/assets/img/destination/01.jpg',
+    bgImage,
     postMeta = null,
 }) {
     return (
@@ -26,19 +26,21 @@ export default function PageBanner({
                     </div>
                 </div>
             </div>
-            <div className="container-fluid">
-                <div className="height1">
-                    <div className="radius-mask">
-                        <div
-                            className="bg-img height2"
-                            data-background={bgImage}
-                            style={{ backgroundImage: `url(${bgImage})` }}
-                            data-speed="0.5"
-                            data-lag="0"
-                        ></div>
+            {bgImage && (
+                <div className="container-fluid">
+                    <div className="height1">
+                        <div className="radius-mask">
+                            <div
+                                className="bg-img height2"
+                                data-background={bgImage}
+                                style={{ backgroundImage: `url(${bgImage})` }}
+                                data-speed="0.5"
+                                data-lag="0"
+                            ></div>
+                        </div>
                     </div>
                 </div>
-            </div>
+            )}
         </header>
     );
 }

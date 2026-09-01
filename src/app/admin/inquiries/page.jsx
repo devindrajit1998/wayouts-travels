@@ -9,70 +9,15 @@ import {
     deleteCollectionItem
 } from '../../../lib/firestoreService';
 
-const initialInquiries = [
-    {
-        id: 'inq-1',
-        from: 'Rajesh Nair',
-        email: 'rajesh.nair@example.com',
-        phone: '+91 98401 55667',
-        subject: 'Custom family package for Kashmir in October',
-        channel: 'Website Form',
-        date: '27 Aug 2026',
-        travelers: '4 Adults, 1 Child',
-        budget: '₹1,50,000 - ₹2,000,000',
-        message: 'Looking for a 6N/7D trip covering Srinagar, Gulmarg, and Pahalgam with 4-star hotels and private Innova Crysta.',
-        status: 'New',
-    },
-    {
-        id: 'inq-2',
-        from: 'Sunita Menon',
-        email: 'sunita.m@example.com',
-        phone: '+91 98230 44556',
-        subject: 'Kerala honeymoon package with luxury houseboat',
-        channel: 'WhatsApp Inquiry',
-        date: '26 Aug 2026',
-        travelers: '2 Adults',
-        budget: '₹80,000 - ₹1,20,000',
-        message: 'Need a honeymoon package with private pool villa in Munnar and 1 night on a luxury Alleppey houseboat.',
-        status: 'Replied',
-    },
-    {
-        id: 'inq-3',
-        from: 'Amitabh Choudhary',
-        email: 'amitabh.c@example.com',
-        phone: '+91 98100 99887',
-        subject: 'Corporate group tour to Rajasthan',
-        channel: 'Email Direct',
-        date: '25 Aug 2026',
-        travelers: '18 Adults',
-        budget: '₹8,00,000+',
-        message: 'Organizing annual executive retreat in Jaipur and Udaipur. Need conference room facilities and gala dinner.',
-        status: 'In Progress',
-    },
-    {
-        id: 'inq-4',
-        from: 'Divya Patel',
-        email: 'divya.patel@example.com',
-        phone: '+91 97250 11234',
-        subject: 'Scuba diving & stay at Andaman',
-        channel: 'Website Form',
-        date: '24 Aug 2026',
-        travelers: '2 Adults',
-        budget: '₹90,000',
-        message: 'Inquiring about Havelock Island scuba diving certification and 5 nights beach resort package.',
-        status: 'Closed',
-    },
-];
-
 const emptyInquiry = {
     from: '',
     email: '',
     phone: '',
     subject: '',
     channel: 'Website Form',
-    date: '28 Aug 2026',
-    travelers: '2 Adults',
-    budget: '₹50,000 - ₹1,00,000',
+    date: '',
+    travelers: '',
+    budget: '',
     message: '',
     status: 'New',
 };
@@ -89,9 +34,15 @@ export default function AdminInquiriesPage() {
     useEffect(() => {
         let isMounted = true;
         setLoading(true);
-        getCollectionItems('inquiries', initialInquiries).then((data) => {
+        getCollectionItems('inquiries').then((data) => {
             if (isMounted) {
                 setInquiriesList(data);
+                setLoading(false);
+            }
+        }).catch((err) => {
+            console.error('Failed to load from Firestore:', err.message);
+            if (isMounted) {
+                setMessage({ type: 'error', text: 'Failed to load data from Firestore: ' + err.message });
                 setLoading(false);
             }
         });
@@ -241,12 +192,12 @@ export default function AdminInquiriesPage() {
                                     </td>
                                     <td>
                                         <span className="admin-badge" style={{ background: '#f8fafc', color: '#1e293b' }}>
-                                            {inq.channel || 'Website'}
+                                            {inq.channel || '—'}
                                         </span>
                                     </td>
                                     <td>
                                         <span style={{ fontWeight: 600, color: 'var(--admin-ink)', fontSize: '12px' }}>
-                                            {inq.budget || 'Custom'}
+                                            {inq.budget || '—'}
                                         </span>
                                         <small style={{ display: 'block', color: 'var(--admin-muted)' }}>{inq.travelers}</small>
                                     </td>

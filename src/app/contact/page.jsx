@@ -1,46 +1,46 @@
 'use client';
 
-import { useState, useEffect } from 'react';
 import Navbar from '../components/Navbar';
 import Footer from '../components/Footer';
 import PageBanner from '../components/PageBanner';
 import ContactForm from '../components/ContactForm';
-import { defaultPagesContent, getPagesContent } from '../../lib/pagesContent';
+import { LoadingState, ErrorState } from '../components/DataState';
+import { usePageMeta } from '../../lib/usePageMeta';
 
 export default function ContactPage() {
-    const [pageMeta, setPageMeta] = useState(defaultPagesContent.contact);
+    const { data: pageMeta, loading, error, retry } = usePageMeta('contact');
 
-    useEffect(() => {
-        let isMounted = true;
-        getPagesContent().then((data) => {
-            if (isMounted && data?.contact) {
-                setPageMeta(data.contact);
-            }
-        });
-        return () => {
-            isMounted = false;
-        };
-    }, []);
-
-    const contactMeta = [
-        { icon: 'fa-solid fa-phone-volume', text: pageMeta.phone || '+1 123 4567 8910' },
-        { icon: 'fa-solid fa-envelope', text: pageMeta.email || 'info@wayouts.com' },
-        { icon: 'fa-solid fa-location-dot', text: pageMeta.address || '113893 Noble Blvd. NY, USA' },
-    ];
+    const contactMeta = pageMeta
+        ? [
+            { icon: 'fa-solid fa-phone-volume', text: pageMeta.phone },
+            { icon: 'fa-solid fa-envelope', text: pageMeta.email },
+            { icon: 'fa-solid fa-location-dot', text: pageMeta.address },
+        ].filter((item) => Boolean(item.text))
+        : [];
 
     return (
         <>
             <Navbar active="contact" />
             <div id="smooth-content">
                 <main className="o-hidden">
-                    <PageBanner
-                        subtitle={pageMeta.bannerSubtitle || 'Talk To Our Team'}
-                        title={pageMeta.bannerTitle || 'Get personalized travel support'}
-                        highlight={pageMeta.bannerHighlight || 'today!'}
-                        bgImage={pageMeta.bannerImage || '/assets/img/destination/03.jpg'}
-                        postMeta={contactMeta}
-                    />
-                    <ContactForm headline={pageMeta.formHeadline} />
+                    {error ? (
+                        <ErrorState label="We could not load the contact page content. Please try again." onRetry={retry} />
+                    ) : loading ? (
+                        <LoadingState label="Loading contact page…" />
+                    ) : !pageMeta ? (
+                        <ErrorState label="Contact page content has not been published yet." onRetry={retry} />
+                    ) : (
+                        <>
+                            <PageBanner
+                                subtitle={pageMeta.bannerSubtitle}
+                                title={pageMeta.bannerTitle}
+                                highlight={pageMeta.bannerHighlight}
+                                bgImage={pageMeta.bannerImage}
+                                postMeta={contactMeta}
+                            />
+                            <ContactForm headline={pageMeta.formHeadline} />
+                        </>
+                    )}
                 </main>
                 <Footer />
             </div>

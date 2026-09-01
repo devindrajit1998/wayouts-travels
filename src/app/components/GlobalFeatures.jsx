@@ -4,50 +4,33 @@ import { useState, useEffect } from 'react';
 import { getDoc, doc } from 'firebase/firestore';
 import { db } from '../../lib/firebase';
 
-const defaultSettings = {
-    enableInstantWhatsAppInquiry: true,
-    whatsappNumber: '+91 98765 43210',
-    enableSeasonalOffersBanner: false,
-    seasonalBannerText: 'Diwali Early-Bird: Flat 15% Off On All Kashmir & Kerala Winter Packages! Use Code: DIWALI15',
-};
-
+/**
+ * Global site features (announcement bar + WhatsApp widget) driven by
+ * the siteSettings/general document in Firestore — the single source of truth.
+ * Until settings load, no feature is rendered; read errors disable both
+ * features rather than falling back to hardcoded content.
+ */
 export default function GlobalFeatures() {
-    const [settings, setSettings] = useState(defaultSettings);
+    const [settings, setSettings] = useState(null);
     const [bannerDismissed, setBannerDismissed] = useState(false);
 
     useEffect(() => {
         let isMounted = true;
-
-        // Try local storage cache first for instant render
-        try {
-            const cached = localStorage.getItem('wayouts_site_settings');
-            if (cached && isMounted) {
-                setSettings((prev) => ({ ...prev, ...JSON.parse(cached) }));
-            }
-        } catch (e) {}
-
-        // Then fetch latest from Firestore
-        async function load() {
-            try {
-                if (db) {
-                    const snap = await getDoc(doc(db, 'siteSettings', 'general'));
-                    if (snap.exists() && isMounted) {
-                        setSettings((prev) => ({ ...prev, ...snap.data() }));
-                    }
-                }
-            } catch (err) {
-                // Silently fallback to defaults
-            }
-        }
-        load();
-
+        getDoc(doc(db, 'siteSettings', 'general'))
+            .then((snap) => {
+                if (isMounted) setSettings(snap.exists() ? snap.data() : {});
+            })
+            .catch((err) => {
+                console.error('Failed to load site settings:', err.message);
+                if (isMounted) setSettings({});
+            });
         return () => {
             isMounted = false;
         };
     }, []);
 
     useEffect(() => {
-        const isBannerActive = Boolean(settings.enableSeasonalOffersBanner && !bannerDismissed);
+        const isBannerActive = Boolean(settings?.enableSeasonalOffersBanner && !bannerDismissed);
         if (isBannerActive) {
             document.documentElement.style.setProperty('--announcement-bar-height', '40px');
             document.body.classList.add('has-announcement-bar');
@@ -59,10 +42,16 @@ export default function GlobalFeatures() {
             document.documentElement.style.setProperty('--announcement-bar-height', '0px');
             document.body.classList.remove('has-announcement-bar');
         };
-    }, [settings.enableSeasonalOffersBanner, bannerDismissed]);
+    }, [settings?.enableSeasonalOffersBanner, bannerDismissed]);
 
-    const whatsappDigits = (settings.whatsappNumber || '+919876543210').replace(/\D/g, '');
-    const whatsappLink = `https://wa.me/${whatsappDigits}?text=${encodeURIComponent('Hello Wayouts Travels, I would like to inquire about a tour package.')}`;
+    if (!settings) {
+        return null;
+    }
+
+    const whatsappDigits = (settings.whatsappNumber || '').replace(/\D/g, '');
+    const whatsappLink = whatsappDigits
+        ? `https://wa.me/${whatsappDigits}?text=${encodeURIComponent('Hello Wayouts Travels, I would like to inquire about a tour package.')}`
+        : null;
 
     return (
         <>
@@ -90,7 +79,7 @@ export default function GlobalFeatures() {
                 >
                     <span>
                         <i className="fa-solid fa-sparkles" style={{ color: '#fef08a', marginRight: '6px' }}></i>
-                        {settings.seasonalBannerText || 'Exclusive Seasonal Offers Available!'}
+                        {settings.seasonalBannerText}
                     </span>
                     <a
                         href="/tours"
@@ -129,7 +118,7 @@ export default function GlobalFeatures() {
             )}
 
             {/* 2. Instant WhatsApp Floating Widget */}
-            {settings.enableInstantWhatsAppInquiry && (
+            {settings.enableInstantWhatsAppInquiry && whatsappLink && (
                 <a
                     href={whatsappLink}
                     target="_blank"

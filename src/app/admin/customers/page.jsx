@@ -9,83 +9,15 @@ import {
     deleteCollectionItem
 } from '../../../lib/firestoreService';
 
-const initialCustomers = [
-    {
-        id: 'cust-1',
-        name: 'Sourav Banerjee',
-        email: 'sourav.banerjee@kolkata.in',
-        phone: '+91 98301 44552',
-        city: 'Salt Lake, Kolkata',
-        trips: 4,
-        spent: '₹1,98,400',
-        joined: '18 Jan 2026',
-        tier: 'Platinum Member',
-        status: 'Active',
-        notes: 'Frequent traveler to Kashmir and Himachal. Prefers direct flights from Kolkata (CCU) and 5-star heritage hotels.',
-    },
-    {
-        id: 'cust-2',
-        name: 'Debjani & Anirban Ghosh',
-        email: 'anirban.ghosh@calcutta.org',
-        phone: '+91 98310 88990',
-        city: 'Ballygunge, Kolkata',
-        trips: 3,
-        spent: '₹1,44,990',
-        joined: '07 Feb 2026',
-        tier: 'Gold Member',
-        status: 'Active',
-        notes: 'Honeymoon and anniversary family trips to Kerala and Andaman. Loves private wooden houseboats.',
-    },
-    {
-        id: 'cust-3',
-        name: 'Dr. Subhashis Mukherjee',
-        email: 'dr.subhashis@medkolkata.com',
-        phone: '+91 98300 77112',
-        city: 'New Town, Kolkata',
-        trips: 6,
-        spent: '₹2,87,200',
-        joined: '22 Mar 2026',
-        tier: 'VIP Elite',
-        status: 'Active',
-        notes: 'Senior consulting physician. Books Himalayan mountain treks, Sikkim, and Ladakh private expeditions.',
-    },
-    {
-        id: 'cust-4',
-        name: 'Priyanka Sen',
-        email: 'priyanka.sen@designkolkata.com',
-        phone: '+91 98365 22334',
-        city: 'Park Street, Kolkata',
-        trips: 2,
-        spent: '₹89,400',
-        joined: '11 Apr 2026',
-        tier: 'Silver Member',
-        status: 'Active',
-        notes: 'Architect & photographer. Enjoys royal fort photography in Rajasthan and coastal Goa.',
-    },
-    {
-        id: 'cust-5',
-        name: 'Indranil Roychowdhury',
-        email: 'indranil.rc@bengalcorp.in',
-        phone: '+91 98312 99001',
-        city: 'Alipore, Kolkata',
-        trips: 5,
-        spent: '₹3,20,000',
-        joined: '04 May 2026',
-        tier: 'VIP Elite',
-        status: 'Active',
-        notes: 'Corporate executive. Requires luxury chauffeur-driven vehicles, palace stays, and airport lounge access.',
-    },
-];
-
 const emptyCustomer = {
     name: '',
     email: '',
     phone: '',
-    city: 'Mumbai, India',
-    trips: 1,
-    spent: '₹49,999',
-    joined: '28 Aug 2026',
-    tier: 'Silver Member',
+    city: '',
+    trips: 0,
+    spent: '',
+    joined: '',
+    tier: '',
     status: 'Active',
     notes: '',
 };
@@ -102,9 +34,15 @@ export default function AdminCustomersPage() {
     useEffect(() => {
         let isMounted = true;
         setLoading(true);
-        getCollectionItems('customers', initialCustomers).then((data) => {
+        getCollectionItems('customers').then((data) => {
             if (isMounted) {
                 setCustomersList(data);
+                setLoading(false);
+            }
+        }).catch((err) => {
+            console.error('Failed to load from Firestore:', err.message);
+            if (isMounted) {
+                setMessage({ type: 'error', text: 'Failed to load data from Firestore: ' + err.message });
                 setLoading(false);
             }
         });
@@ -276,7 +214,7 @@ export default function AdminCustomersPage() {
                                             color: cust.tier?.includes('VIP') ? '#92400e' : cust.tier?.includes('Platinum') ? '#6b21a8' : '#0e7490',
                                             border: '1px solid transparent'
                                         }}>
-                                            {cust.tier || 'Silver Member'}
+                                            {cust.tier || '—'}
                                         </span>
                                     </td>
                                     <td>

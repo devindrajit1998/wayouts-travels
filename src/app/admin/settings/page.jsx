@@ -6,45 +6,39 @@ import ImageUpload from '../../components/ImageUpload';
 import { getDoc, setDoc, doc } from 'firebase/firestore';
 import { db } from '../../../lib/firebase';
 
-const defaultSettings = {
-    // Brand & General
-    agencyName: 'Wayouts Luxury Travels',
-    tagline: 'Crafting Unforgettable Journeys Across India & Beyond',
-    logoDark: '/assets/img/logo-dark.png',
-    logoLight: '/assets/img/logo.png',
-    favicon: '/assets/img/favicon.ico',
-    primaryCurrency: 'INR (₹)',
-    timezone: 'IST (UTC+05:30)',
-
-    // Contact Info
-    supportEmail: 'contact@wayouts.com',
-    bookingHotline: '+91 98765 43210',
-    whatsappNumber: '+91 98765 43210',
-    headquartersAddress: '402, Signature One, S.G. Highway, Ahmedabad, Gujarat 380054, India',
-    officeHours: 'Monday – Saturday: 9:30 AM – 7:30 PM',
-
-    // Social Media Links
-    instagramUrl: 'https://instagram.com/wayouts_travels',
-    facebookUrl: 'https://facebook.com/wayoutstravels',
-    youtubeUrl: 'https://youtube.com/@wayoutstravels',
-
-    // Site Toggles & Features
-    enableOnlineBookings: true,
-    enableInstantWhatsAppInquiry: true,
-    enableNewsletterPopup: true,
+// Empty shape used only for controlled form inputs before Firestore data arrives.
+// No content values are hardcoded here — all values come from siteSettings/general.
+const emptySettings = {
+    agencyName: '',
+    tagline: '',
+    logoDark: '',
+    logoLight: '',
+    favicon: '',
+    primaryCurrency: '',
+    timezone: '',
+    supportEmail: '',
+    bookingHotline: '',
+    whatsappNumber: '',
+    headquartersAddress: '',
+    officeHours: '',
+    instagramUrl: '',
+    facebookUrl: '',
+    youtubeUrl: '',
+    enableOnlineBookings: false,
+    enableInstantWhatsAppInquiry: false,
+    enableNewsletterPopup: false,
     enableSeasonalOffersBanner: false,
-    seasonalBannerText: 'Diwali Early-Bird: Flat 15% Off On All Kashmir & Kerala Winter Packages! Use Code: DIWALI15',
-
-    // SEO Defaults
-    defaultMetaTitle: 'Wayouts — Luxury Travel & Adventure Tour Operator India',
-    defaultMetaDescription: 'Discover handcrafted luxury holiday packages, private chauffeur tours, mountain expeditions, and tropical retreats with Wayouts Travels.',
-    defaultKeywords: 'luxury tours india, kashmir holiday packages, kerala backwaters, rajasthan royal tour, travel agency india',
+    seasonalBannerText: '',
+    defaultMetaTitle: '',
+    defaultMetaDescription: '',
+    defaultKeywords: '',
 };
 
 export default function AdminSettingsPage() {
-    const [settings, setSettings] = useState(defaultSettings);
+    const [settings, setSettings] = useState(emptySettings);
     const [activeTab, setActiveTab] = useState('brand');
     const [loading, setLoading] = useState(true);
+    const [loadError, setLoadError] = useState(null);
     const [saving, setSaving] = useState(false);
     const [message, setMessage] = useState(null);
 
@@ -52,14 +46,17 @@ export default function AdminSettingsPage() {
         let isMounted = true;
         async function fetchSettings() {
             try {
-                if (db) {
-                    const snap = await getDoc(doc(db, 'siteSettings', 'general'));
-                    if (snap.exists() && isMounted) {
-                        setSettings({ ...defaultSettings, ...snap.data() });
+                const snap = await getDoc(doc(db, 'siteSettings', 'general'));
+                if (isMounted) {
+                    if (snap.exists()) {
+                        setSettings({ ...emptySettings, ...snap.data() });
+                    } else {
+                        setLoadError(new Error('Settings document (siteSettings/general) not found in Firestore. Run the seeding script first.'));
                     }
                 }
             } catch (err) {
-                console.warn('Could not load remote settings, using defaults:', err.message);
+                console.error('Failed to load settings from Firestore:', err.message);
+                if (isMounted) setLoadError(err);
             } finally {
                 if (isMounted) setLoading(false);
             }
@@ -76,11 +73,7 @@ export default function AdminSettingsPage() {
         setMessage(null);
 
         try {
-            if (db) {
-                await setDoc(doc(db, 'siteSettings', 'general'), settings, { merge: true });
-            }
-            // Also store in localStorage as reliable client-side cache
-            localStorage.setItem('wayouts_site_settings', JSON.stringify(settings));
+            await setDoc(doc(db, 'siteSettings', 'general'), settings, { merge: true });
             setMessage({ type: 'success', text: 'All settings and brand configurations saved successfully!' });
         } catch (error) {
             setMessage({ type: 'error', text: 'Failed to save settings: ' + error.message });
@@ -137,6 +130,11 @@ export default function AdminSettingsPage() {
 
             {loading ? (
                 <div className="admin-card admin-empty">Loading settings configuration…</div>
+            ) : loadError ? (
+                <div className="admin-card admin-empty">
+                    <p>Failed to load settings from Firestore: {loadError.message}</p>
+                    <p style={{ fontSize: '13px' }}>Please verify your Firebase connection and reload this page.</p>
+                </div>
             ) : (
                 <form onSubmit={handleSave}>
                     {/* TAB 1: Brand & Logos */}

@@ -10,134 +10,19 @@ import {
     deleteCollectionItem
 } from '../../../lib/firestoreService';
 
-const initialTours = [
-    {
-        id: 'tour-1',
-        name: 'Maldives Paradise Escape',
-        bannerSubtitle: 'Explore Our Tours',
-        destination: 'Maldives, Asia',
-        duration: '6 Days - 5 Nights',
-        tourDate: '26.05.2027',
-        price: '₹39,999',
-        rating: '4.9',
-        reviewsCount: '128',
-        groupSize: '15 - 20 People',
-        featured: true,
-        image: '/assets/img/destination/01.jpg',
-        gallery: [
-            '/assets/img/destination/a.jpg',
-            '/assets/img/destination/b.jpg',
-            '/assets/img/destination/c.jpg',
-            '/assets/img/destination/d.jpg'
-        ],
-        overview: 'Escape to pure paradise with our Maldives Paradise Escape tour. Experience crystal-clear turquoise waters, white sandy beaches, and luxurious island resorts. This carefully designed package offers the perfect balance of relaxation, adventure, and unforgettable tropical beauty.',
-        highlights: [
-            'Stay in a five star beachfront resort',
-            'Direct access to private beaches',
-            'Sunset cruises and dolphin watching'
-        ],
-        bestTimeToVisit: 'November – April (dry season, best weather conditions)',
-        whoIsItFor: 'Couples, honeymooners, families, and luxury travel lovers',
-        included: ['Daily breakfast', 'Guided island activities', 'Welcome assistance on arrival'],
-        excluded: ['International flights', 'Personal expenses', 'Optional tours & activities'],
-        status: 'Completed',
-    },
-    {
-        id: 'tour-2',
-        name: 'Dubai Luxury Journey',
-        bannerSubtitle: 'Explore Our Tours',
-        destination: 'Dubai, UAE',
-        duration: '5 Days - 4 Nights',
-        tourDate: '15.09.2026',
-        price: '₹55,999',
-        rating: '4.8',
-        reviewsCount: '94',
-        groupSize: '12 - 16 People',
-        featured: true,
-        image: '/assets/img/destination/03.jpg',
-        gallery: [
-            '/assets/img/destination/03.jpg',
-            '/assets/img/destination/a.jpg',
-            '/assets/img/destination/b.jpg'
-        ],
-        overview: 'Discover futuristic architecture, luxury desert safaris, and vibrant gold souks in modern Dubai.',
-        highlights: ['Burj Khalifa Observation Deck', 'Desert Safari with BBQ Dinner', 'Dubai Marina Yacht Tour'],
-        bestTimeToVisit: 'October – April (pleasant desert climate)',
-        whoIsItFor: 'Luxury seekers, shoppers, families, and architectural enthusiasts',
-        included: ['4-Star Luxury Hotel', 'Desert Safari with Transfers', 'City Sightseeing Tour'],
-        excluded: ['Visa Fee', 'International Airfare'],
-        status: 'Active',
-    },
-    {
-        id: 'tour-3',
-        name: 'Canadian Nature Tour',
-        bannerSubtitle: 'Explore Our Tours',
-        destination: 'Banff, Canada',
-        duration: '7 Days - 6 Nights',
-        tourDate: '10.07.2026',
-        price: '₹63,999',
-        rating: '4.9',
-        reviewsCount: '86',
-        groupSize: '10 - 15 People',
-        featured: true,
-        image: '/assets/img/destination/02.jpg',
-        gallery: [
-            '/assets/img/destination/02.jpg',
-            '/assets/img/destination/c.jpg'
-        ],
-        overview: 'Immerse yourself in the breathtaking Canadian Rockies, turquoise glacier lakes, and alpine wildlife trails.',
-        highlights: ['Lake Louise & Moraine Lake Tour', 'Icefields Parkway Scenic Drive', 'Banff Gondola Ride'],
-        bestTimeToVisit: 'June – September (hiking and emerald lakes season)',
-        whoIsItFor: 'Hikers, photographers, nature lovers, and adventure seekers',
-        included: ['Lodge Accommodation', 'Park Entry Permits', 'Professional Mountain Guide'],
-        excluded: ['Flight Tickets', 'Personal Gear'],
-        status: 'Active',
-    },
-    {
-        id: 'tour-4',
-        name: 'Greek Paradise Tour',
-        bannerSubtitle: 'Explore Our Tours',
-        destination: 'Santorini, Greece',
-        duration: '7 Days - 6 Nights',
-        tourDate: '18.06.2026',
-        price: '₹71,999',
-        rating: '4.8',
-        reviewsCount: '112',
-        groupSize: '12 - 18 People',
-        featured: false,
-        image: '/assets/img/destination/05.jpg',
-        gallery: [
-            '/assets/img/destination/05.jpg',
-            '/assets/img/destination/d.jpg'
-        ],
-        overview: 'Wander whitewashed cliffside villages, azure waters, volcanic beaches, and world-famous Aegean sunsets.',
-        highlights: ['Oia Sunset Walking Tour', 'Catamaran Caldera Cruise', 'Local Wine Tasting Tour'],
-        bestTimeToVisit: 'May – October (warm Aegean sunshine)',
-        whoIsItFor: 'Couples, honeymooners, culture lovers, and foodies',
-        included: ['Boutique Hotel Stay', 'Daily Continental Breakfast', 'Catamaran Cruise with Lunch'],
-        excluded: ['Airfare', 'Personal Shopping'],
-        status: 'Draft',
-    },
-];
-
 const emptyTour = {
     name: '',
-    bannerSubtitle: 'Explore Our Tours',
+    bannerSubtitle: '',
     destination: '',
-    duration: '6 Days - 5 Nights',
-    tourDate: '26.05.2027',
-    price: '₹49,999',
-    rating: '4.9',
-    reviewsCount: '50',
-    groupSize: '15 - 20 People',
+    duration: '',
+    tourDate: '',
+    price: '',
+    rating: '',
+    reviewsCount: '',
+    groupSize: '',
     featured: false,
-    image: '/assets/img/destination/01.jpg',
-    gallery: [
-        '/assets/img/destination/a.jpg',
-        '/assets/img/destination/b.jpg',
-        '/assets/img/destination/c.jpg',
-        '/assets/img/destination/d.jpg'
-    ],
+    image: '',
+    gallery: [''],
     overview: '',
     highlights: [''],
     bestTimeToVisit: '',
@@ -161,19 +46,18 @@ export default function AdminToursPage() {
         let isMounted = true;
         setLoading(true);
         Promise.all([
-            getCollectionItems('tours', initialTours),
-            getCollectionItems('destinations', [
-                { name: 'Kashmir & Ladakh', region: 'North India' },
-                { name: 'Kerala & Backwaters', region: 'South India' },
-                { name: 'Rajasthan & Golden Triangle', region: 'North India' },
-                { name: 'Goa Coastline', region: 'West India' },
-                { name: 'Sikkim & Darjeeling', region: 'East & Northeast India' },
-                { name: 'Andaman & Nicobar Islands', region: 'Islands & Coastal India' },
-            ]),
+            getCollectionItems('tours'),
+            getCollectionItems('destinations'),
         ]).then(([toursData, destsData]) => {
             if (isMounted) {
                 setToursList(toursData);
                 setDestinationsList(destsData);
+                setLoading(false);
+            }
+        }).catch((err) => {
+            console.error('Failed to load from Firestore:', err.message);
+            if (isMounted) {
+                setMessage({ type: 'error', text: 'Failed to load data from Firestore: ' + err.message });
                 setLoading(false);
             }
         });
@@ -242,6 +126,7 @@ export default function AdminToursPage() {
             highlights: currentTour.highlights.filter((h) => h && h.trim()),
             included: currentTour.included.filter((i) => i && i.trim()),
             excluded: currentTour.excluded.filter((e) => e && e.trim()),
+            gallery: (currentTour.gallery || []).filter((g) => g && g.trim()),
         };
 
         try {
@@ -325,11 +210,15 @@ export default function AdminToursPage() {
                                 <tr key={tour.id || tour.name}>
                                     <td>
                                         <div className="admin-list-main">
-                                            <img
-                                                className="admin-thumb"
-                                                src={tour.image || '/assets/img/destination/01.jpg'}
-                                                alt=""
-                                            />
+                                            {tour.image ? (
+                                                <img
+                                                    className="admin-thumb"
+                                                    src={tour.image}
+                                                    alt=""
+                                                />
+                                            ) : (
+                                                <span className="admin-thumb admin-thumb-empty"></span>
+                                            )}
                                             <div>
                                                 <strong>{tour.name}</strong>
                                                 {tour.groupSize && (
@@ -346,7 +235,7 @@ export default function AdminToursPage() {
                                         <strong style={{ color: 'var(--admin-primary)' }}>{tour.price}</strong>
                                     </td>
                                     <td>
-                                        <span className="admin-rating">★ {tour.rating || '4.9'}</span>
+                                        <span className="admin-rating">★ {tour.rating || '—'}</span>
                                     </td>
                                     <td>
                                         <span className={`admin-badge ${tour.featured ? '' : 'pending'}`}>
@@ -523,11 +412,17 @@ export default function AdminToursPage() {
                             <div className="admin-form-field full">
                                 <label>Featured Thumbnail Image</label>
                                 <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                                    <img
-                                        src={currentTour.image || '/assets/img/destination/01.jpg'}
-                                        alt=""
-                                        style={{ width: '48px', height: '48px', objectFit: 'cover', borderRadius: '6px', border: '1px solid var(--admin-line)' }}
-                                    />
+                                    {currentTour.image ? (
+                                        <img
+                                            src={currentTour.image}
+                                            alt=""
+                                            style={{ width: '48px', height: '48px', objectFit: 'cover', borderRadius: '6px', border: '1px solid var(--admin-line)' }}
+                                        />
+                                    ) : (
+                                        <span
+                                            style={{ width: '48px', height: '48px', borderRadius: '6px', border: '1px solid var(--admin-line)', flexShrink: 0, background: 'repeating-linear-gradient(45deg, #eef2f7, #eef2f7 6px, #e2e8f0 6px, #e2e8f0 12px)' }}
+                                        ></span>
+                                    )}
                                     <input
                                         value={currentTour.image || ''}
                                         onChange={(e) => setCurrentTour({ ...currentTour, image: e.target.value })}

@@ -1,16 +1,13 @@
-import { defaultHomeContent, getHomeContent, saveHomeContent } from './homeContent';
+import { getHomeContent, saveHomeContent } from './homeContent';
 
 /**
- * Backwards-compatible hero data API.
- * The hero now lives inside the home page content model (see homeContent.js),
- * but these exports keep the original interface used by Hero.jsx and the
- * admin editor.
+ * Hero data API. The hero lives inside the home page content document
+ * (siteContent/home) in Firestore; these exports keep the interface
+ * used by Hero.jsx and the admin editor.
  */
-export const defaultHeroContent = defaultHomeContent.hero;
-
 export async function getHeroContent() {
     const home = await getHomeContent();
-    return home.hero;
+    return home ? home.hero : null;
 }
 
 export async function saveHeroContent(content) {

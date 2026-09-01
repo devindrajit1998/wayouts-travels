@@ -10,68 +10,13 @@ import {
     deleteCollectionItem
 } from '../../../lib/firestoreService';
 
-const initialReviews = [
-    {
-        id: 'rev-1',
-        name: 'Aarav Sharma',
-        location: 'Mumbai, India',
-        avatar: '/assets/img/team/tst1.jpg',
-        tourName: 'Kashmir & Ladakh Escape',
-        rating: 5,
-        date: '24 Aug 2026',
-        title: 'Unforgettable Himalayan Experience',
-        comment: 'The houseboat stay on Dal Lake and the drive to Pangong Tso were organized to perfection. Truly a 5-star trip!',
-        featured: true,
-        status: 'Approved',
-    },
-    {
-        id: 'rev-2',
-        name: 'Pooja Iyer',
-        location: 'Bengaluru, India',
-        avatar: '/assets/img/team/1.jpg',
-        tourName: 'Kerala Backwaters & Tea Trails',
-        rating: 5,
-        date: '18 Aug 2026',
-        title: 'Peaceful and luxurious',
-        comment: 'Munnar tea estates and the Alleppey private cruise exceeded all our expectations. Seamless chauffeur service throughout.',
-        featured: true,
-        status: 'Approved',
-    },
-    {
-        id: 'rev-3',
-        name: 'Rohan Mehta',
-        location: 'Delhi NCR',
-        avatar: '/assets/img/team/3.jpg',
-        tourName: 'Royal Rajasthan Heritage Circuit',
-        rating: 5,
-        date: '12 Aug 2026',
-        title: 'Palaces, safaris and royal hospitality',
-        comment: 'From Jaipur palaces to desert camping in Jaisalmer under the stars, every single detail was taken care of.',
-        featured: true,
-        status: 'Approved',
-    },
-    {
-        id: 'rev-4',
-        name: 'Ananya Deshmukh',
-        location: 'Pune, India',
-        avatar: '/assets/img/team/4.jpg',
-        tourName: 'Goa Coastal Serenity',
-        rating: 4,
-        date: '05 Aug 2026',
-        title: 'Great beach resort selection',
-        comment: 'Very relaxing holiday. The private transfers were punctual and the resort recommendations were spot on.',
-        featured: false,
-        status: 'Pending',
-    },
-];
-
 const emptyReview = {
     name: '',
-    location: 'Mumbai, India',
-    avatar: '/assets/img/team/tst1.jpg',
+    location: '',
+    avatar: '',
     tourName: '',
     rating: 5,
-    date: '28 Aug 2026',
+    date: '',
     title: '',
     comment: '',
     featured: true,
@@ -92,12 +37,18 @@ export default function AdminTestimonialsPage() {
         let isMounted = true;
         setLoading(true);
         Promise.all([
-            getCollectionItems('testimonials', initialReviews),
-            getCollectionItems('tours', []),
+            getCollectionItems('testimonials'),
+            getCollectionItems('tours'),
         ]).then(([revsData, toursData]) => {
             if (isMounted) {
                 setReviewsList(revsData);
                 setToursList(toursData);
+                setLoading(false);
+            }
+        }).catch((err) => {
+            console.error('Failed to load from Firestore:', err.message);
+            if (isMounted) {
+                setMessage({ type: 'error', text: 'Failed to load data from Firestore: ' + err.message });
                 setLoading(false);
             }
         });
@@ -125,7 +76,7 @@ export default function AdminTestimonialsPage() {
             ...emptyReview,
             id: `rev-${Date.now()}`,
             date: today,
-            tourName: toursList[0]?.name || 'Kashmir & Ladakh Escape',
+            tourName: toursList[0]?.name || '',
         });
         setModalMode('create');
         setMessage(null);
@@ -231,11 +182,17 @@ export default function AdminTestimonialsPage() {
                                 <tr key={rev.id || rev.name}>
                                     <td>
                                         <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                                            <img
-                                                src={rev.avatar || '/assets/img/team/tst1.jpg'}
-                                                alt=""
-                                                style={{ width: '38px', height: '38px', borderRadius: '50%', objectFit: 'cover', border: '1px solid var(--admin-line)' }}
-                                            />
+                                            {rev.avatar ? (
+                                                <img
+                                                    src={rev.avatar}
+                                                    alt=""
+                                                    style={{ width: '38px', height: '38px', borderRadius: '50%', objectFit: 'cover', border: '1px solid var(--admin-line)' }}
+                                                />
+                                            ) : (
+                                                <span
+                                                    style={{ width: '38px', height: '38px', borderRadius: '50%', border: '1px solid var(--admin-line)', flexShrink: 0, background: 'repeating-linear-gradient(45deg, #eef2f7, #eef2f7 6px, #e2e8f0 6px, #e2e8f0 12px)' }}
+                                                ></span>
+                                            )}
                                             <div>
                                                 <strong>{rev.name}</strong>
                                                 <small style={{ display: 'block', color: 'var(--admin-muted)' }}>{rev.location}</small>
@@ -244,7 +201,7 @@ export default function AdminTestimonialsPage() {
                                     </td>
                                     <td>
                                         <span className="admin-badge" style={{ background: '#f8fafc', color: '#1e293b' }}>
-                                            {rev.tourName || 'General Tour'}
+                                            {rev.tourName || '—'}
                                         </span>
                                     </td>
                                     <td>
@@ -408,11 +365,17 @@ export default function AdminTestimonialsPage() {
                             <div className="admin-form-field full">
                                 <label>Guest Profile Photo / Avatar</label>
                                 <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                                    <img
-                                        src={currentReview.avatar || '/assets/img/team/tst1.jpg'}
-                                        alt=""
-                                        style={{ width: '42px', height: '42px', borderRadius: '50%', objectFit: 'cover', border: '1px solid var(--admin-line)' }}
-                                    />
+                                    {currentReview.avatar ? (
+                                        <img
+                                            src={currentReview.avatar}
+                                            alt=""
+                                            style={{ width: '42px', height: '42px', borderRadius: '50%', objectFit: 'cover', border: '1px solid var(--admin-line)' }}
+                                        />
+                                    ) : (
+                                        <span
+                                            style={{ width: '42px', height: '42px', borderRadius: '50%', border: '1px solid var(--admin-line)', flexShrink: 0, background: 'repeating-linear-gradient(45deg, #eef2f7, #eef2f7 6px, #e2e8f0 6px, #e2e8f0 12px)' }}
+                                        ></span>
+                                    )}
                                     <input
                                         value={currentReview.avatar || ''}
                                         onChange={(e) => setCurrentReview({ ...currentReview, avatar: e.target.value })}

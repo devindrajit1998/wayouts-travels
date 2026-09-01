@@ -10,117 +10,6 @@ import {
     deleteCollectionItem
 } from '../../../lib/firestoreService';
 
-const initialServices = [
-    {
-        id: 'serv-1',
-        title: 'Custom Tour Packages',
-        subtitle: 'Personalized Itineraries & Holidays',
-        icon: 'fa-thin fa-route',
-        image: '/assets/img/destination/01.jpg',
-        desc: 'Personalized travel plans tailored to your interests, schedule, and budget across India and beyond.',
-        overview: 'Discover bespoke holiday packages crafted with luxury stays, private chauffeur transfers, and exclusive sightseeing experiences.',
-        features: [
-            'Tailor-made itineraries with private guide options',
-            'Handpicked luxury hotels and premium boutique resorts',
-            'Flexible departure dates and custom flight bookings',
-            'Dedicated concierge support throughout your vacation'
-        ],
-        badge: 'Top Popular',
-        order: 1,
-        status: 'Active',
-    },
-    {
-        id: 'serv-2',
-        title: 'Flight & Airline Booking',
-        subtitle: 'Domestic & Global Flight Reservations',
-        icon: 'fa-thin fa-plane-departure',
-        image: '/assets/img/destination/03.jpg',
-        desc: 'Fast, secure flight reservations at the best available corporate and holiday fares.',
-        overview: 'Access direct airline ticketing, flexible rescheduling options, seat preference selection, and real-time flight notifications.',
-        features: [
-            'Best negotiated rates on major domestic and global carriers',
-            'Hassle-free baggage assistance and priority check-in tips',
-            'Instant e-ticket generation and live status tracking',
-            '24/7 rescheduling and cancellation emergency desk'
-        ],
-        badge: 'Best Rates',
-        order: 2,
-        status: 'Active',
-    },
-    {
-        id: 'serv-3',
-        title: 'Hotel & Luxury Accommodation',
-        subtitle: '5-Star Stays, Villas & Resorts',
-        icon: 'fa-thin fa-hotel',
-        image: '/assets/img/destination/02.jpg',
-        desc: 'Comfortable, verified luxury accommodation options with complimentary breakfast and perks.',
-        overview: 'From scenic mountain chalets in Kashmir to overwater villas in the Maldives and royal heritage havelis in Rajasthan.',
-        features: [
-            'Direct partnerships with top international hotel brands',
-            'Complimentary room upgrades and wellness inclusions',
-            'Verified guest reviews, hygiene standards, and safety',
-            'Early check-in and late checkout privileges'
-        ],
-        badge: 'Verified',
-        order: 3,
-        status: 'Active',
-    },
-    {
-        id: 'serv-4',
-        title: 'Visa & Travel Documentation',
-        subtitle: 'Fast-Track Processing & Consular Support',
-        icon: 'fa-thin fa-passport',
-        image: '/assets/img/destination/04.jpg',
-        desc: 'Professional document verification and visa application assistance for all major destinations.',
-        overview: 'End-to-end guidance through embassy paperwork, appointment scheduling, biometrics preparation, and passport dispatch.',
-        features: [
-            'Comprehensive document screening and verification checklist',
-            'Expedited tourist and business visa assistance',
-            'Embassies appointment booking and interview tips',
-            'Complimentary mandatory travel insurance guidance'
-        ],
-        badge: 'Fast Track',
-        order: 4,
-        status: 'Active',
-    },
-    {
-        id: 'serv-5',
-        title: 'Airport & Intercity Transfers',
-        subtitle: 'Chauffeur Driven Private Fleets',
-        icon: 'fa-thin fa-van-shuttle',
-        image: '/assets/img/destination/05.jpg',
-        desc: 'Reliable private airport pickups, luxury sedans, and air-conditioned coaches for stress-free journeys.',
-        overview: 'Experienced multilingual drivers, GPS-monitored premium vehicles, and punctual transfers between airports, hotels, and tourist spots.',
-        features: [
-            'Clean sanitized fleet with sanitized AC interiors',
-            'Punctual flight delay monitoring and meet-and-greet',
-            'English & Hindi speaking professional chauffeurs',
-            'Fixed upfront pricing with zero hidden surcharge fees'
-        ],
-        badge: 'Private Fleet',
-        order: 5,
-        status: 'Active',
-    },
-    {
-        id: 'serv-6',
-        title: '24/7 Traveler Emergency Support',
-        subtitle: 'Dedicated Travel Concierge Team',
-        icon: 'fa-thin fa-headset',
-        image: '/assets/img/destination/06.jpg',
-        desc: 'Dedicated multilingual support available anytime during your journey via WhatsApp and phone.',
-        overview: 'Round-the-clock assistance for flight delays, emergency medical coordination, hotel requests, and on-trip itinerary adjustments.',
-        features: [
-            'Dedicated personal tour manager assigned to your trip',
-            'Instant WhatsApp live chat and emergency hotlines',
-            'Real-time weather, local travel alerts, and advisory',
-            'Lost luggage recovery coordination'
-        ],
-        badge: '24x7 Live',
-        order: 6,
-        status: 'Active',
-    },
-];
-
 const availableIcons = [
     { label: 'Route / Itinerary', value: 'fa-thin fa-route' },
     { label: 'Flight / Plane', value: 'fa-thin fa-plane-departure' },
@@ -140,15 +29,11 @@ const emptyService = {
     title: '',
     subtitle: '',
     icon: 'fa-thin fa-route',
-    image: '/assets/img/destination/01.jpg',
+    image: '',
     desc: '',
     overview: '',
-    features: [
-        'Personalized service tailored to your travel style',
-        'Direct coordination with certified travel partners',
-        '24/7 dedicated assistance and live support'
-    ],
-    badge: 'Popular',
+    features: [''],
+    badge: '',
     order: 1,
     status: 'Active',
 };
@@ -165,9 +50,15 @@ export default function AdminServicesPage() {
     useEffect(() => {
         let isMounted = true;
         setLoading(true);
-        getCollectionItems('services', initialServices).then((data) => {
+        getCollectionItems('services').then((data) => {
             if (isMounted) {
                 setServicesList(data);
+                setLoading(false);
+            }
+        }).catch((err) => {
+            console.error('Failed to load from Firestore:', err.message);
+            if (isMounted) {
+                setMessage({ type: 'error', text: 'Failed to load data from Firestore: ' + err.message });
                 setLoading(false);
             }
         });
@@ -306,7 +197,7 @@ export default function AdminServicesPage() {
                                                 fontSize: '18px',
                                                 border: '1px solid #cffafe'
                                             }}>
-                                                <i className={service.icon || 'fa-thin fa-route'}></i>
+                                                {service.icon && <i className={service.icon}></i>}
                                             </div>
                                             <div>
                                                 <strong>{service.title}</strong>
@@ -470,11 +361,17 @@ export default function AdminServicesPage() {
                             <div className="admin-form-field full">
                                 <label>Banner Artwork (Service Details Hero)</label>
                                 <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                                    <img
-                                        src={currentService.image || '/assets/img/destination/01.jpg'}
-                                        alt=""
-                                        style={{ width: '48px', height: '48px', objectFit: 'cover', borderRadius: '6px', border: '1px solid var(--admin-line)' }}
-                                    />
+                                    {currentService.image ? (
+                                        <img
+                                            src={currentService.image}
+                                            alt=""
+                                            style={{ width: '48px', height: '48px', objectFit: 'cover', borderRadius: '6px', border: '1px solid var(--admin-line)' }}
+                                        />
+                                    ) : (
+                                        <span
+                                            style={{ width: '48px', height: '48px', borderRadius: '6px', border: '1px solid var(--admin-line)', flexShrink: 0, background: 'repeating-linear-gradient(45deg, #eef2f7, #eef2f7 6px, #e2e8f0 6px, #e2e8f0 12px)' }}
+                                        ></span>
+                                    )}
                                     <input
                                         value={currentService.image || ''}
                                         onChange={(e) => setCurrentService({ ...currentService, image: e.target.value })}

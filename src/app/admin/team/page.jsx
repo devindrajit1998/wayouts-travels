@@ -10,82 +10,15 @@ import {
     deleteCollectionItem
 } from '../../../lib/firestoreService';
 
-const initialTeam = [
-    {
-        id: 'tm-1',
-        name: 'Emily White',
-        role: 'Travel Director & Founder',
-        specialization: 'Luxury Escapes & Northern Himalayas',
-        email: 'emily@wayouts.com',
-        phone: '+91 98765 43210',
-        tours: 18,
-        experience: '12+ Years',
-        image: '/assets/img/team/tst1.jpg',
-        bio: 'Over a decade designing high-end bespoke holiday experiences across Kashmir, Ladakh, and international luxury retreats.',
-        socialInstagram: 'https://instagram.com',
-        socialLinkedin: 'https://linkedin.com',
-        featured: true,
-        status: 'Active',
-    },
-    {
-        id: 'tm-2',
-        name: 'Daniel Scott',
-        role: 'Senior Expeditions Guide',
-        specialization: 'Wildlife Safaris & Trekking',
-        email: 'daniel@wayouts.com',
-        phone: '+91 98765 43211',
-        tours: 24,
-        experience: '9+ Years',
-        image: '/assets/img/team/1.jpg',
-        bio: 'Certified wilderness first-responder leading high-altitude Himalayan treks and national park tiger safaris.',
-        socialInstagram: 'https://instagram.com',
-        socialLinkedin: 'https://linkedin.com',
-        featured: true,
-        status: 'Active',
-    },
-    {
-        id: 'tm-3',
-        name: 'Sarah Kim',
-        role: 'Destination Specialist',
-        specialization: 'Cultural Heritage & Royal Circuits',
-        email: 'sarah@wayouts.com',
-        phone: '+91 98765 43212',
-        tours: 15,
-        experience: '7+ Years',
-        image: '/assets/img/team/3.jpg',
-        bio: 'Specializing in historical architecture, culinary trails, and authentic cultural encounters in Rajasthan and South India.',
-        socialInstagram: 'https://instagram.com',
-        socialLinkedin: 'https://linkedin.com',
-        featured: true,
-        status: 'Active',
-    },
-    {
-        id: 'tm-4',
-        name: 'Michael Reed',
-        role: 'Guest Experience & Concierge',
-        specialization: 'VIP Logistics & Wellness',
-        email: 'michael@wayouts.com',
-        phone: '+91 98765 43213',
-        tours: 11,
-        experience: '6+ Years',
-        image: '/assets/img/team/4.jpg',
-        bio: 'Dedicated to ensuring seamless 24/7 airport handling, luxury villa stays, and bespoke on-ground hospitality.',
-        socialInstagram: 'https://instagram.com',
-        socialLinkedin: 'https://linkedin.com',
-        featured: false,
-        status: 'Active',
-    },
-];
-
 const emptyMember = {
     name: '',
-    role: 'Travel Advisor',
-    specialization: 'Domestic & International Tours',
+    role: '',
+    specialization: '',
     email: '',
     phone: '',
     tours: 0,
-    experience: '5+ Years',
-    image: '/assets/img/team/1.jpg',
+    experience: '',
+    image: '',
     bio: '',
     socialInstagram: '',
     socialLinkedin: '',
@@ -105,9 +38,15 @@ export default function AdminTeamPage() {
     useEffect(() => {
         let isMounted = true;
         setLoading(true);
-        getCollectionItems('team', initialTeam).then((data) => {
+        getCollectionItems('team').then((data) => {
             if (isMounted) {
                 setTeamList(data);
+                setLoading(false);
+            }
+        }).catch((err) => {
+            console.error('Failed to load from Firestore:', err.message);
+            if (isMounted) {
+                setMessage({ type: 'error', text: 'Failed to load data from Firestore: ' + err.message });
                 setLoading(false);
             }
         });
@@ -234,14 +173,20 @@ export default function AdminTeamPage() {
                                 <tr key={member.id || member.name}>
                                     <td>
                                         <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                                            <img
-                                                src={member.image || '/assets/img/team/1.jpg'}
-                                                alt=""
-                                                style={{ width: '42px', height: '42px', borderRadius: '50%', objectFit: 'cover', border: '1px solid var(--admin-line)' }}
-                                            />
+                                            {member.image ? (
+                                                <img
+                                                    src={member.image}
+                                                    alt=""
+                                                    style={{ width: '42px', height: '42px', borderRadius: '50%', objectFit: 'cover', border: '1px solid var(--admin-line)' }}
+                                                />
+                                            ) : (
+                                                <span
+                                                    style={{ width: '42px', height: '42px', borderRadius: '50%', border: '1px solid var(--admin-line)', flexShrink: 0, background: 'repeating-linear-gradient(45deg, #eef2f7, #eef2f7 6px, #e2e8f0 6px, #e2e8f0 12px)' }}
+                                                ></span>
+                                            )}
                                             <div>
                                                 <strong>{member.name}</strong>
-                                                <small style={{ display: 'block', color: 'var(--admin-muted)' }}>{member.email || member.phone || 'Staff'}</small>
+                                                <small style={{ display: 'block', color: 'var(--admin-muted)' }}>{member.email || member.phone || '—'}</small>
                                             </div>
                                         </div>
                                     </td>
@@ -252,9 +197,9 @@ export default function AdminTeamPage() {
                                     </td>
                                     <td>
                                         <div style={{ fontSize: '13px', color: 'var(--admin-ink)' }}>
-                                            {member.specialization || 'General Advisory'}
+                                            {member.specialization || '—'}
                                         </div>
-                                        <small style={{ color: 'var(--admin-muted)' }}>Exp: {member.experience || '5+ Years'}</small>
+                                        <small style={{ color: 'var(--admin-muted)' }}>Exp: {member.experience || '—'}</small>
                                     </td>
                                     <td>
                                         <span style={{ fontWeight: 600, color: 'var(--admin-ink)', fontSize: '13px' }}>
@@ -411,11 +356,17 @@ export default function AdminTeamPage() {
                             <div className="admin-form-field full">
                                 <label>Profile Photo / Headshot</label>
                                 <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                                    <img
-                                        src={currentMember.image || '/assets/img/team/1.jpg'}
-                                        alt=""
-                                        style={{ width: '48px', height: '48px', borderRadius: '50%', objectFit: 'cover', border: '1px solid var(--admin-line)' }}
-                                    />
+                                    {currentMember.image ? (
+                                        <img
+                                            src={currentMember.image}
+                                            alt=""
+                                            style={{ width: '48px', height: '48px', borderRadius: '50%', objectFit: 'cover', border: '1px solid var(--admin-line)' }}
+                                        />
+                                    ) : (
+                                        <span
+                                            style={{ width: '48px', height: '48px', borderRadius: '50%', border: '1px solid var(--admin-line)', flexShrink: 0, background: 'repeating-linear-gradient(45deg, #eef2f7, #eef2f7 6px, #e2e8f0 6px, #e2e8f0 12px)' }}
+                                        ></span>
+                                    )}
                                     <input
                                         value={currentMember.image || ''}
                                         onChange={(e) => setCurrentMember({ ...currentMember, image: e.target.value })}

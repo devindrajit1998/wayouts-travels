@@ -3,10 +3,7 @@
 import { useState } from 'react';
 import { addCollectionItem } from '../../lib/firestoreService';
 
-export default function ContactForm({
-    headline = 'Get in touch!',
-    image = '/assets/img/destination/b.jpg',
-}) {
+export default function ContactForm({ headline, image }) {
     const [name, setName] = useState('');
     const [email, setEmail] = useState('');
     const [subject, setSubject] = useState('');
@@ -51,17 +48,19 @@ export default function ContactForm({
         <div className="contact section-padding">
             <div className="container">
                 <div className="row justify-content-center align-items-center">
-                    <div className="col-md-4">
-                        <div className="item-img duru-rotate-scale-reveal">
-                            <img src={image} alt="" />
+                    {image && (
+                        <div className="col-md-4">
+                            <div className="item-img duru-rotate-scale-reveal">
+                                <img src={image} alt="" />
+                            </div>
                         </div>
-                    </div>
-                    <div className="col-md-5 offset-md-1">
+                    )}
+                    <div className={image ? 'col-md-5 offset-md-1' : 'col-md-6'}>
                         <div className="contact-form">
                             <form onSubmit={handleSubmit}>
                                 <div className="row">
                                     <div className="col-md-12 text-left">
-                                        <h3>{headline}</h3>
+                                        {headline && <h3>{headline}</h3>}
                                         {status === 'success' && (
                                             <div style={{ padding: '10px 14px', background: '#dcfce7', color: '#15803d', borderRadius: '8px', fontSize: '13px', marginBottom: '14px', border: '1px solid #86efac' }}>
                                                 Thank you! Your travel inquiry has been received. Our Kolkata team will contact you shortly.

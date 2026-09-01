@@ -1,36 +1,60 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { defaultHomeContent } from '../../lib/homeContent';
+import { getHomeContent } from '../../lib/homeContent';
 import { getCollectionItems } from '../../lib/firestoreService';
+import { LoadingState, ErrorState, EmptyState } from './DataState';
 
 /**
- * Data-driven Blog section. Content is editable from /admin/home (Blog tab)
- * and pulls live items from Firestore 'posts' collection.
+ * Data-driven Blog section. Section copy is editable from /admin/home (Blog tab);
+ * post items are pulled live from the Firestore 'posts' collection — the single
+ * source of truth.
  */
-export default function BlogSection({ content = defaultHomeContent.blog }) {
-    const { subtitle, titlePart1, titlePart2 } = content;
-    const [postsList, setPostsList] = useState(content.posts || defaultHomeContent.blog.posts);
+export default function BlogSection({ content: initialContent = null }) {
+    const [content, setContent] = useState(initialContent);
+    const [sectionError, setSectionError] = useState(null);
+    const [postsList, setPostsList] = useState(null);
+    const [listError, setListError] = useState(null);
+
+    useEffect(() => {
+        if (initialContent) return;
+        let isMounted = true;
+        getHomeContent()
+            .then((home) => {
+                if (isMounted) setContent(home ? home.blog : null);
+            })
+            .catch((err) => {
+                console.error('Failed to load blog section:', err.message);
+                if (isMounted) setSectionError(err);
+            });
+        return () => {
+            isMounted = false;
+        };
+    }, [initialContent]);
 
     useEffect(() => {
         let isMounted = true;
-        getCollectionItems('posts', []).then((items) => {
-            if (isMounted && items && items.length > 0) {
-                const mapped = items.slice(0, 3).map((p) => ({
-                    title: p.title || p.name,
-                    date: p.date || 'Aug 2026',
-                    image: p.image || p.coverImage || '/assets/img/blog/1.jpg',
-                    excerpt: p.excerpt || p.description || '',
-                    blogLink: '/blog',
-                    postLink: `/post?id=${p.id || ''}`
-                }));
-                setPostsList(mapped);
-            }
-        });
+        getCollectionItems('posts')
+            .then((items) => {
+                if (isMounted) setPostsList(items);
+            })
+            .catch((err) => {
+                console.error('Failed to load blog posts:', err.message);
+                if (isMounted) setListError(err);
+            });
         return () => {
             isMounted = false;
         };
     }, []);
+
+    if (sectionError) {
+        return <ErrorState label="We could not load the blog section. Please try again." />;
+    }
+    if (!content) {
+        return <LoadingState label="Loading blog…" />;
+    }
+
+    const { subtitle, titlePart1, titlePart2 } = content;
 
     return (
         <section className="blog-home section-padding">
@@ -48,26 +72,40 @@ export default function BlogSection({ content = defaultHomeContent.blog }) {
                     </div>
                 </div>
                 <div className="row">
-                    {postsList.map((post, index) => (
-                        <div className={`col-md-4 ${index === 0 ? 'duru-slide-left' : index === 1 ? 'duru-slide-up' : 'duru-slide-right'}`} key={index}>
-                            <div
-                                className={`item bg-img ${index === 1 ? 'active' : ''}`}
-                                data-background={post.image}
-                                style={post.image ? { backgroundImage: `url(${post.image})` } : undefined}
-                            >
-                                <div className="content">
-                                    <div className="info">
-                                        <a href={post.blogLink || '/blog'}><span><i className="ti-time"></i>{post.date}</span></a>
+                    {listError ? (
+                        <div className="col-md-12">
+                            <ErrorState label="We could not load the blog posts. Please try again." minHeight="200px" />
+                        </div>
+                    ) : postsList === null ? (
+                        <div className="col-md-12">
+                            <LoadingState label="Loading blog posts…" minHeight="200px" />
+                        </div>
+                    ) : postsList.length === 0 ? (
+                        <div className="col-md-12">
+                            <EmptyState label="No blog posts available yet." minHeight="200px" />
+                        </div>
+                    ) : (
+                        postsList.slice(0, 3).map((post, index) => (
+                            <div className={`col-md-4 ${index === 0 ? 'duru-slide-left' : index === 1 ? 'duru-slide-up' : 'duru-slide-right'}`} key={post.id || index}>
+                                <div
+                                    className={`item bg-img ${index === 1 ? 'active' : ''}`}
+                                    data-background={post.image}
+                                    style={post.image ? { backgroundImage: `url(${post.image})` } : undefined}
+                                >
+                                    <div className="content">
+                                        <div className="info">
+                                            <a href="/blog"><span><i className="ti-time"></i>{post.date}</span></a>
+                                        </div>
+                                        <a href={`/post?id=${post.id || ''}`}>
+                                            <h5>{post.title}</h5>
+                                        </a>
+                                        {post.excerpt ? <p>{post.excerpt}</p> : null}
+                                        <div className="arrow"><a href={`/post?id=${post.id || ''}`}><i className="ti-arrow-top-right"></i></a></div>
                                     </div>
-                                    <a href={post.postLink || '/post'}>
-                                        <h5>{post.title}</h5>
-                                    </a>
-                                    {post.excerpt ? <p>{post.excerpt}</p> : null}
-                                    <div className="arrow"><a href={post.postLink || '/post'}><i className="ti-arrow-top-right"></i></a></div>
                                 </div>
                             </div>
-                        </div>
-                    ))}
+                        ))
+                    )}
                 </div>
             </div>
         </section>

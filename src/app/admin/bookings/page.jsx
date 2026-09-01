@@ -9,79 +9,6 @@ import {
     deleteCollectionItem
 } from '../../../lib/firestoreService';
 
-const initialBookings = [
-    {
-        id: 'WY-1048',
-        guest: 'Aarav Sharma',
-        email: 'aarav.sharma@example.com',
-        phone: '+91 98201 23456',
-        tour: 'Kashmir & Ladakh Escape',
-        travelers: 2,
-        departureDate: '15 Sep 2026',
-        amount: '₹49,998',
-        paymentStatus: 'Paid',
-        bookingDate: '24 Aug 2026',
-        specialRequests: 'Window seat preference on domestic transfers and vegetarian meals.',
-        status: 'Confirmed',
-    },
-    {
-        id: 'WY-1047',
-        guest: 'Pooja Iyer',
-        email: 'pooja.iyer@example.com',
-        phone: '+91 98450 78901',
-        tour: 'Kerala Backwaters & Tea Trails',
-        travelers: 4,
-        departureDate: '22 Sep 2026',
-        amount: '₹79,996',
-        paymentStatus: 'Partially Paid',
-        bookingDate: '22 Aug 2026',
-        specialRequests: 'Private wooden houseboat with interconnected bedroom.',
-        status: 'Pending',
-    },
-    {
-        id: 'WY-1046',
-        guest: 'Rohan Mehta',
-        email: 'rohan.mehta@example.com',
-        phone: '+91 98110 54321',
-        tour: 'Royal Rajasthan Heritage Circuit',
-        travelers: 2,
-        departureDate: '05 Oct 2026',
-        amount: '₹45,998',
-        paymentStatus: 'Paid',
-        bookingDate: '19 Aug 2026',
-        specialRequests: 'Desert tent luxury upgrade and camel sunset safari.',
-        status: 'Confirmed',
-    },
-    {
-        id: 'WY-1045',
-        guest: 'Ananya Deshmukh',
-        email: 'ananya.d@example.com',
-        phone: '+91 97654 32109',
-        tour: 'Goa Coastal Serenity',
-        travelers: 3,
-        departureDate: '12 Oct 2026',
-        amount: '₹44,997',
-        paymentStatus: 'Refunded',
-        bookingDate: '15 Aug 2026',
-        specialRequests: 'Trip postponed due to schedule conflict.',
-        status: 'Cancelled',
-    },
-    {
-        id: 'WY-1044',
-        guest: 'Vikramjit Singh',
-        email: 'vikram.singh@example.com',
-        phone: '+91 98722 11223',
-        tour: 'Sikkim & Darjeeling Explorer',
-        travelers: 2,
-        departureDate: '18 Oct 2026',
-        amount: '₹43,998',
-        paymentStatus: 'Paid',
-        bookingDate: '12 Aug 2026',
-        specialRequests: 'Early morning Kangchenjunga sunrise view guide.',
-        status: 'Confirmed',
-    },
-];
-
 const emptyBooking = {
     guest: '',
     email: '',
@@ -89,8 +16,8 @@ const emptyBooking = {
     tour: '',
     travelers: 2,
     departureDate: '',
-    amount: '₹49,999',
-    paymentStatus: 'Paid',
+    amount: '',
+    paymentStatus: 'Pending',
     bookingDate: '',
     specialRequests: '',
     status: 'Confirmed',
@@ -110,12 +37,18 @@ export default function AdminBookingsPage() {
         let isMounted = true;
         setLoading(true);
         Promise.all([
-            getCollectionItems('bookings', initialBookings),
-            getCollectionItems('tours', []),
+            getCollectionItems('bookings'),
+            getCollectionItems('tours'),
         ]).then(([bookingsData, toursData]) => {
             if (isMounted) {
                 setBookingsList(bookingsData);
                 setToursList(toursData);
+                setLoading(false);
+            }
+        }).catch((err) => {
+            console.error('Failed to load from Firestore:', err.message);
+            if (isMounted) {
+                setMessage({ type: 'error', text: 'Failed to load data from Firestore: ' + err.message });
                 setLoading(false);
             }
         });
@@ -143,7 +76,7 @@ export default function AdminBookingsPage() {
         setCurrentBooking({
             ...emptyBooking,
             id: `WY-${Math.floor(1000 + Math.random() * 9000)}`,
-            tour: toursList[0]?.name || 'Kashmir & Ladakh Escape',
+            tour: toursList[0]?.name || '',
             bookingDate: today,
             departureDate: `${d.getDate() + 15} ${months[(d.getMonth() + 1) % 12]} ${d.getFullYear()}`,
         });
@@ -265,7 +198,7 @@ export default function AdminBookingsPage() {
                                     </td>
                                     <td>
                                         <span className="admin-badge" style={{ background: '#f8fafc', color: '#1e293b' }}>
-                                            {b.tour || 'Custom Itinerary'}
+                                            {b.tour || '—'}
                                         </span>
                                     </td>
                                     <td>
@@ -403,7 +336,7 @@ export default function AdminBookingsPage() {
                                         <option value="">-- Select Tour Package --</option>
                                         {toursList.map((t) => (
                                             <option key={t.id || t.name} value={t.name}>
-                                                {t.name} ({t.price || '₹49,999'})
+                                                {t.name}{t.price ? ` (${t.price})` : ''}
                                             </option>
                                         ))}
                                     </select>

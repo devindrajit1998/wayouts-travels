@@ -1,29 +1,29 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { defaultHomeContent } from '../../lib/homeContent';
 import { getCollectionItems } from '../../lib/firestoreService';
+import { LoadingState, ErrorState, EmptyState } from './DataState';
 
 /**
- * Data-driven Services section. Content is editable from /admin/home (Services tab)
- * and pulls live items from Firestore 'services' collection.
+ * Data-driven Services section. Section copy is editable from
+ * /admin/home (Services tab); service items are pulled live from
+ * the Firestore 'services' collection — the single source of truth.
  */
-export default function ServicesSection({ content = defaultHomeContent.services }) {
-    const { titlePart1, titlePart2, circleText, backgroundImage } = content;
-    const [serviceList, setServiceList] = useState(content.services || defaultHomeContent.services.services);
+export default function ServicesSection({ content }) {
+    const { titlePart1, titlePart2, circleText, backgroundImage } = content || {};
+    const [serviceList, setServiceList] = useState(null);
+    const [error, setError] = useState(null);
 
     useEffect(() => {
         let isMounted = true;
-        getCollectionItems('services', []).then((items) => {
-            if (isMounted && items && items.length > 0) {
-                const mapped = items.slice(0, 4).map((s) => ({
-                    title: s.title || s.name,
-                    icon: s.icon ? (s.icon.startsWith('fa-') ? s.icon : `fa-${s.icon}`) : 'fa-bell-concierge',
-                    link: s.link || '/services'
-                }));
-                setServiceList(mapped);
-            }
-        });
+        getCollectionItems('services')
+            .then((items) => {
+                if (isMounted) setServiceList(items);
+            })
+            .catch((err) => {
+                console.error('Failed to load services:', err.message);
+                if (isMounted) setError(err);
+            });
         return () => {
             isMounted = false;
         };
@@ -61,15 +61,29 @@ export default function ServicesSection({ content = defaultHomeContent.services 
                     </div>
                 </div>
                 <div className="row">
-                    {serviceList.map((service, index) => (
-                        <div className="col-md-3" key={index}>
-                            <div className={`item mb-25 ${index < serviceList.length / 2 ? 'duru-slide-left' : 'duru-slide-right'}`}>
-                                <a href={service.link || '/service-details'}><span className="arrow fa-thin fa-arrow-up-right"></span></a>
-                                <div className="icon"><i className={`fa-thin ${service.icon}`}></i></div>
-                                <h5>{service.title}</h5>
-                            </div>
+                    {error ? (
+                        <div className="col-md-12">
+                            <ErrorState label="We could not load the services. Please try again." minHeight="150px" />
                         </div>
-                    ))}
+                    ) : serviceList === null ? (
+                        <div className="col-md-12">
+                            <LoadingState label="Loading services…" minHeight="150px" />
+                        </div>
+                    ) : serviceList.length === 0 ? (
+                        <div className="col-md-12">
+                            <EmptyState label="No services available yet." minHeight="150px" />
+                        </div>
+                    ) : (
+                        serviceList.slice(0, 4).map((service, index) => (
+                            <div className="col-md-3" key={service.id || index}>
+                                <div className={`item mb-25 ${index < serviceList.length / 2 ? 'duru-slide-left' : 'duru-slide-right'}`}>
+                                    <a href={`/service-details?id=${service.id || ''}`}><span className="arrow fa-thin fa-arrow-up-right"></span></a>
+                                    <div className="icon"><i className={service.icon}></i></div>
+                                    <h5>{service.title}</h5>
+                                </div>
+                            </div>
+                        ))
+                    )}
                 </div>
             </div>
             <div className="container-fluid">

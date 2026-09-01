@@ -1,38 +1,26 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { defaultHomeContent, getHomeContent } from '../../lib/homeContent';
+import { getHomeContent } from '../../lib/homeContent';
 import { addCollectionItem } from '../../lib/firestoreService';
+import { LoadingState, ErrorState } from './DataState';
 
 export default function Footer() {
-    const [footerContent, setFooterContent] = useState(defaultHomeContent.footer || {
-        subtitle: 'SUBSCRIBE TO TRAVEL',
-        titlePart1: 'Travel deals to your',
-        titleHighlight: 'inbox!',
-        privacyText: 'We are committed to protecting your',
-        privacyLink: '#0',
-        instagramHandle: 'WAYOUTS',
-        instagramLink: 'https://instagram.com/wayouts_travels',
-        instagramImages: [
-            '/assets/img/insta/03.jpg',
-            '/assets/img/insta/01.jpg',
-            '/assets/img/insta/02.jpg',
-            '/assets/img/insta/04.jpg',
-            '/assets/img/insta/05.jpg',
-            '/assets/img/insta/06.jpg'
-        ],
-    });
-
+    const [footerContent, setFooterContent] = useState(null);
+    const [error, setError] = useState(null);
     const [email, setEmail] = useState('');
     const [subStatus, setSubStatus] = useState(null); // 'submitting' | 'success' | 'error'
 
     useEffect(() => {
         let isMounted = true;
-        getHomeContent().then((data) => {
-            if (isMounted && data?.footer) {
-                setFooterContent(data.footer);
-            }
-        });
+        getHomeContent()
+            .then((data) => {
+                if (isMounted) setFooterContent(data ? data.footer : null);
+            })
+            .catch((err) => {
+                console.error('Failed to load footer content:', err.message);
+                if (isMounted) setError(err);
+            });
         return () => {
             isMounted = false;
         };
@@ -62,9 +50,14 @@ export default function Footer() {
         }
     }
 
-    const images = footerContent.instagramImages && footerContent.instagramImages.length > 0
-        ? footerContent.instagramImages
-        : ['/assets/img/insta/03.jpg', '/assets/img/insta/01.jpg', '/assets/img/insta/02.jpg', '/assets/img/insta/04.jpg', '/assets/img/insta/05.jpg', '/assets/img/insta/06.jpg'];
+    if (error) {
+        return <ErrorState label="We could not load the footer content. Please try again." minHeight="200px" />;
+    }
+    if (!footerContent) {
+        return <LoadingState label="Loading footer…" minHeight="200px" />;
+    }
+
+    const images = footerContent.instagramImages || [];
 
     return (
         <footer className="footer">
@@ -72,11 +65,11 @@ export default function Footer() {
                 <div className="row justify-content-center">
                     <div className="col-md-7 mb-45 text-center">
                         <div className="subscribe">
-                            <div className="section-subtitle wow fadeInRight">{footerContent.subtitle || 'SUBSCRIBE TO TRAVEL'}</div>
+                            {footerContent.subtitle ? <div className="section-subtitle wow fadeInRight">{footerContent.subtitle}</div> : null}
                             <div className="section-title d-rotate wow mb-30">
                                 <span className="rotate-text text-white">
-                                    {footerContent.titlePart1 || 'Travel deals to your'}{' '}
-                                    <i>{footerContent.titleHighlight || 'inbox!'}</i>
+                                    {footerContent.titlePart1}{' '}
+                                    {footerContent.titleHighlight ? <i>{footerContent.titleHighlight}</i> : null}
                                 </span>
                             </div>
                             <div className="newsletter">
@@ -104,33 +97,37 @@ export default function Footer() {
                                     Unable to subscribe. Please try again.
                                 </p>
                             )}
-                            <p>{footerContent.privacyText || 'We are committed to protecting your'} <a href={footerContent.privacyLink || '#0'} className="text-decoration-line-bottom">privacy policy.</a></p>
+                            {footerContent.privacyText ? (
+                                <p>{footerContent.privacyText} <a href={footerContent.privacyLink || '#'} className="text-decoration-line-bottom">privacy policy.</a></p>
+                            ) : null}
                         </div>
                     </div>
                 </div>
-                <div className="insta">
-                    <div className="container">
-                        <div className="row">
-                            <div className="col-md-12">
-                                <div className="item">
-                                    {images.slice(0, 6).map((imgUrl, index) => (
-                                        <div className="img" key={index}>
-                                            <a href={footerContent.instagramLink || 'https://instagram.com'} target="_blank" rel="noopener noreferrer">
-                                                <img src={imgUrl} alt="" />
+                {images.length > 0 && (
+                    <div className="insta">
+                        <div className="container">
+                            <div className="row">
+                                <div className="col-md-12">
+                                    <div className="item">
+                                        {images.slice(0, 6).map((imgUrl, index) => (
+                                            <div className="img" key={index}>
+                                                <a href={footerContent.instagramLink || '#'} target="_blank" rel="noopener noreferrer">
+                                                    <img src={imgUrl} alt="" />
+                                                </a>
+                                                <i className="fa-brands fa-instagram"></i>
+                                            </div>
+                                        ))}
+                                        <div className="follow">
+                                            <a href={footerContent.instagramLink || '#'} target="_blank" rel="noopener noreferrer" className="text-bg">
+                                                <span><i className="fa-brands fa-instagram"></i> / {footerContent.instagramHandle}</span>
                                             </a>
-                                            <i className="fa-brands fa-instagram"></i>
                                         </div>
-                                    ))}
-                                    <div className="follow">
-                                        <a href={footerContent.instagramLink || 'https://instagram.com'} target="_blank" rel="noopener noreferrer" className="text-bg">
-                                            <span><i className="fa-brands fa-instagram"></i> / {footerContent.instagramHandle || 'WAYOUTS'}</span>
-                                        </a>
                                     </div>
                                 </div>
                             </div>
                         </div>
                     </div>
-                </div>
+                )}
             </div>
             <div className="bottom">
                 <div className="container">

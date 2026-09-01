@@ -9,54 +9,6 @@ import {
     deleteCollectionItem
 } from '../../../lib/firestoreService';
 
-const initialFaqs = [
-    {
-        id: 'faq-1',
-        question: 'How do I customize an Indian tour package with Wayouts?',
-        category: 'Booking & Customization',
-        icon: 'fa-thin fa-route',
-        answer: 'You can choose any existing package or share your travel dates, preferred destinations, hotel categories, and activities with our travel designers. We craft a bespoke itinerary with private transfers and guide options within 24 hours.',
-        order: 1,
-        status: 'Published',
-    },
-    {
-        id: 'faq-2',
-        question: 'What are the payment methods and currency options?',
-        category: 'Payments & Pricing',
-        icon: 'fa-thin fa-credit-card',
-        answer: 'All our prices are denominated in Indian Rupees (₹). We accept UPI, Net Banking, major Credit/Debit Cards, and NEFT/RTGS bank transfers. Flexible installment payment options are available for advance bookings.',
-        order: 2,
-        status: 'Published',
-    },
-    {
-        id: 'faq-3',
-        question: 'Are flights and visa assistance included in packages?',
-        category: 'Flights & Visa',
-        icon: 'fa-thin fa-plane-departure',
-        answer: 'Domestic transfers and selected flights can be bundled seamlessly into your package. For international destinations, our dedicated visa desk assists you with appointment booking, document screening, and fast-track processing.',
-        order: 3,
-        status: 'Published',
-    },
-    {
-        id: 'faq-4',
-        question: 'What is your cancellation and refund policy?',
-        category: 'Cancellations & Refunds',
-        icon: 'fa-thin fa-shield-check',
-        answer: 'Cancellations requested 30 days prior to departure receive up to 90% refund minus minimal administrative charges. For bookings closer to departure, refund percentages depend on airline and hotel partner policies.',
-        order: 4,
-        status: 'Published',
-    },
-    {
-        id: 'faq-5',
-        question: 'Do you provide 24/7 on-trip assistance during the tour?',
-        category: 'Customer Support',
-        icon: 'fa-thin fa-headset',
-        answer: 'Yes. Every booking includes a dedicated personal tour concierge reachable 24/7 via WhatsApp and direct hotline for flight updates, emergency support, hotel requests, and local assistance.',
-        order: 5,
-        status: 'Published',
-    },
-];
-
 const emptyFaq = {
     question: '',
     category: 'Booking & Customization',
@@ -87,9 +39,15 @@ export default function AdminFaqsPage() {
     useEffect(() => {
         let isMounted = true;
         setLoading(true);
-        getCollectionItems('faqs', initialFaqs).then((data) => {
+        getCollectionItems('faqs').then((data) => {
             if (isMounted) {
                 setFaqsList(data);
+                setLoading(false);
+            }
+        }).catch((err) => {
+            console.error('Failed to load from Firestore:', err.message);
+            if (isMounted) {
+                setMessage({ type: 'error', text: 'Failed to load data from Firestore: ' + err.message });
                 setLoading(false);
             }
         });
@@ -230,7 +188,7 @@ export default function AdminFaqsPage() {
                                     </td>
                                     <td>
                                         <span className="admin-badge" style={{ background: '#f1f5f9', color: '#334155' }}>
-                                            {faq.category || 'General'}
+                                            {faq.category || '—'}
                                         </span>
                                     </td>
                                     <td>

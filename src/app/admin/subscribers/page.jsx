@@ -9,54 +9,11 @@ import {
     deleteCollectionItem
 } from '../../../lib/firestoreService';
 
-const initialSubscribers = [
-    {
-        id: 'sub-1',
-        email: 'sarah.miller@gmail.com',
-        source: 'Homepage Footer',
-        date: '27 Aug 2026',
-        city: 'Mumbai',
-        status: 'Subscribed',
-    },
-    {
-        id: 'sub-2',
-        email: 'alex.traveler@outlook.com',
-        source: 'Blog Newsletter Box',
-        date: '26 Aug 2026',
-        city: 'Bengaluru',
-        status: 'Subscribed',
-    },
-    {
-        id: 'sub-3',
-        email: 'david.k@adventure.co',
-        source: 'Homepage Footer',
-        date: '24 Aug 2026',
-        city: 'Delhi NCR',
-        status: 'Subscribed',
-    },
-    {
-        id: 'sub-4',
-        email: 'elena.rossi@voyage.it',
-        source: 'Destination Guide Popup',
-        date: '20 Aug 2026',
-        city: 'International',
-        status: 'Subscribed',
-    },
-    {
-        id: 'sub-5',
-        email: 'vikram.travels@yahoo.com',
-        source: 'Tour Deals Banner',
-        date: '15 Aug 2026',
-        city: 'Pune',
-        status: 'Unsubscribed',
-    },
-];
-
 const emptySubscriber = {
     email: '',
     source: 'Manual Admin Entry',
-    date: '28 Aug 2026',
-    city: 'India',
+    date: '',
+    city: '',
     status: 'Subscribed',
 };
 
@@ -72,9 +29,15 @@ export default function AdminSubscribersPage() {
     useEffect(() => {
         let isMounted = true;
         setLoading(true);
-        getCollectionItems('subscribers', initialSubscribers).then((data) => {
+        getCollectionItems('subscribers').then((data) => {
             if (isMounted) {
                 setSubscribersList(data);
+                setLoading(false);
+            }
+        }).catch((err) => {
+            console.error('Failed to load from Firestore:', err.message);
+            if (isMounted) {
+                setMessage({ type: 'error', text: 'Failed to load data from Firestore: ' + err.message });
                 setLoading(false);
             }
         });
@@ -231,11 +194,11 @@ export default function AdminSubscribersPage() {
                                     </td>
                                     <td>
                                         <span className="admin-badge" style={{ background: '#f8fafc', color: '#1e293b' }}>
-                                            {sub.source || 'Website'}
+                                            {sub.source || '—'}
                                         </span>
                                     </td>
                                     <td>
-                                        <span style={{ fontSize: '12px', color: 'var(--admin-ink)' }}>{sub.city || 'India'}</span>
+                                        <span style={{ fontSize: '12px', color: 'var(--admin-ink)' }}>{sub.city || '—'}</span>
                                     </td>
                                     <td>
                                         <small style={{ color: 'var(--admin-muted)' }}>{sub.date}</small>

@@ -14,30 +14,19 @@ import {
 } from 'firebase/firestore';
 
 /**
- * Generic Firestore collection service with fallback to initial mock data if offline or Firebase not yet configured
+ * Generic Firestore collection service.
+ * Firebase is the single source of truth: an empty collection returns [],
+ * and any read error is thrown to the caller (no fallback data).
  */
-export async function getCollectionItems(collectionName, fallbackData = [], orderField = null) {
-    try {
-        if (!process.env.NEXT_PUBLIC_FIREBASE_API_KEY || process.env.NEXT_PUBLIC_FIREBASE_API_KEY === 'your_firebase_api_key_here') {
-            return fallbackData;
-        }
+export async function getCollectionItems(collectionName, orderField = null) {
+    const colRef = collection(db, collectionName);
+    const q = orderField ? query(colRef, orderBy(orderField, 'desc')) : colRef;
+    const snapshot = await getDocs(q);
 
-        const colRef = collection(db, collectionName);
-        const q = orderField ? query(colRef, orderBy(orderField, 'desc')) : colRef;
-        const snapshot = await getDocs(q);
-
-        if (snapshot.empty) {
-            return fallbackData;
-        }
-
-        return snapshot.docs.map((docSnap) => ({
-            id: docSnap.id,
-            ...docSnap.data(),
-        }));
-    } catch (error) {
-        console.warn(`Firestore get error (${collectionName}), falling back to local dataset:`, error.message);
-        return fallbackData;
-    }
+    return snapshot.docs.map((docSnap) => ({
+        id: docSnap.id,
+        ...docSnap.data(),
+    }));
 }
 
 export async function addCollectionItem(collectionName, itemData) {

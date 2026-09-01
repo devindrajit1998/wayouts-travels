@@ -1,41 +1,39 @@
 'use client';
 
-import { useState, useEffect } from 'react';
 import Navbar from '../components/Navbar';
 import Footer from '../components/Footer';
 import PageBanner from '../components/PageBanner';
 import ScrollingTicker from '../components/ScrollingTicker';
 import DestinationsGrid from '../components/DestinationsGrid';
-import { defaultPagesContent, getPagesContent } from '../../lib/pagesContent';
+import { LoadingState, ErrorState } from '../components/DataState';
+import { usePageMeta } from '../../lib/usePageMeta';
 
 export default function DestinationPage() {
-    const [pageMeta, setPageMeta] = useState(defaultPagesContent.destinations);
-
-    useEffect(() => {
-        let isMounted = true;
-        getPagesContent().then((data) => {
-            if (isMounted && data?.destinations) {
-                setPageMeta(data.destinations);
-            }
-        });
-        return () => {
-            isMounted = false;
-        };
-    }, []);
+    const { data: pageMeta, loading, error, retry } = usePageMeta('destinations');
 
     return (
         <>
             <Navbar active="destination" />
             <div id="smooth-content">
                 <main className="o-hidden">
-                    <PageBanner
-                        subtitle={pageMeta.bannerSubtitle || 'EXPLORE OUR TOURS'}
-                        title={pageMeta.bannerTitle || "Explore the world's"}
-                        highlight={pageMeta.bannerHighlight || 'best destinations'}
-                        bgImage={pageMeta.bannerImage || '/assets/img/destination/02.jpg'}
-                    />
-                    <ScrollingTicker />
-                    <DestinationsGrid />
+                    {error ? (
+                        <ErrorState label="We could not load the destinations page content. Please try again." onRetry={retry} />
+                    ) : loading ? (
+                        <LoadingState label="Loading destinations…" />
+                    ) : !pageMeta ? (
+                        <ErrorState label="Destinations page content has not been published yet." onRetry={retry} />
+                    ) : (
+                        <>
+                            <PageBanner
+                                subtitle={pageMeta.bannerSubtitle}
+                                title={pageMeta.bannerTitle}
+                                highlight={pageMeta.bannerHighlight}
+                                bgImage={pageMeta.bannerImage}
+                            />
+                            <ScrollingTicker />
+                            <DestinationsGrid />
+                        </>
+                    )}
                 </main>
                 <Footer />
             </div>

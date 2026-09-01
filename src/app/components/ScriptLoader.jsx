@@ -64,13 +64,20 @@ export default function ScriptLoader() {
                     if (cancelled) return;
                     await loadScript(src);
                 }
-                
+
                 // If on public frontend and window is complete, replicate preloader toggle
                 if (!isAdminOrAccount && !cancelled && document.readyState === 'complete') {
                     document.body.classList.add('loaded');
                     setTimeout(() => {
                         document.body.classList.remove('loaded');
                     }, 1500);
+                }
+
+                // Content may have mounted from Firestore while the scripts
+                // were still loading. custom.js exposes a global refresh that
+                // re-binds all animations against the current DOM.
+                if (!isAdminOrAccount && !cancelled && typeof window !== 'undefined' && typeof window.wayoutsRefreshAnimations === 'function') {
+                    window.wayoutsRefreshAnimations();
                 }
             } catch (err) {
                 console.error(err);

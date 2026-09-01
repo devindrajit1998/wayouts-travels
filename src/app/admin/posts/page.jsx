@@ -10,81 +10,6 @@ import {
     deleteCollectionItem
 } from '../../../lib/firestoreService';
 
-const initialPosts = [
-    {
-        id: 'post-1',
-        title: 'Exploring the hidden paradise of Kashmir & Ladakh',
-        category: 'Travel Tips',
-        author: 'Emily Brown',
-        authorAvatar: '/assets/img/team/tst1.jpg',
-        date: '28 Dec 2026',
-        readTime: '5 min read',
-        image: '/assets/img/blog/1.jpg',
-        excerpt: 'Discover a world where turquoise lakes meet towering Himalayan snowcaps and ancient monasteries.',
-        leadQuote: 'The mountains are calling and I must go to the valleys of northern bliss.',
-        leadQuoteCite: 'John Muir',
-        leadText: 'Experience the pristine beauty and vibrant local culture of the high Himalayas...',
-        bodyParagraph1: 'From scenic shikara rides across Dal Lake to adventurous drives through Khardung La pass...',
-        bodyParagraph2: 'Immerse yourself in mountain serenity and taste authentic Kashmiri wazwan cuisine...',
-        featured: true,
-        status: 'Published',
-    },
-    {
-        id: 'post-2',
-        title: 'Journey through Kerala backwaters and spice plantations',
-        category: 'Destinations',
-        author: 'Daniel Scott',
-        authorAvatar: '/assets/img/team/1.jpg',
-        date: '26 Dec 2026',
-        readTime: '6 min read',
-        image: '/assets/img/blog/2.jpg',
-        excerpt: 'Glide through palm-fringed lagoons, aromatic tea slopes of Munnar, and tranquil coastal resorts.',
-        leadQuote: 'Gods own country offers tranquility that heals the modern soul.',
-        leadQuoteCite: 'Traveler Journal',
-        leadText: 'Kerala presents an unmatched ecosystem of emerald backwaters and traditional wellness...',
-        bodyParagraph1: 'Spending a night aboard an authentic wooden houseboat surrounded by gentle waters...',
-        bodyParagraph2: 'Explore historic Fort Kochi, colonial Dutch heritage, and classic Kathakali performances...',
-        featured: true,
-        status: 'Published',
-    },
-    {
-        id: 'post-3',
-        title: 'Royal palaces, forts, and desert safaris of Rajasthan',
-        category: 'Culture & Heritage',
-        author: 'Sarah Kim',
-        authorAvatar: '/assets/img/team/3.jpg',
-        date: '24 Dec 2026',
-        readTime: '4 min read',
-        image: '/assets/img/blog/3.jpg',
-        excerpt: 'Step into the land of maharajas, vibrant folk music, golden sand dunes, and grandeur architecture.',
-        leadQuote: 'Every palace in Rajasthan tells a legend of valor, love, and imperial royalty.',
-        leadQuoteCite: 'Heritage Guide',
-        leadText: 'Rajasthan is an open-air museum filled with timeless forts and colorful bazaars...',
-        bodyParagraph1: 'Wander through the pink city of Jaipur and the romantic lake palace of Udaipur...',
-        bodyParagraph2: 'Camp beneath the starry desert sky in Jaisalmer with traditional folk dances...',
-        featured: true,
-        status: 'Published',
-    },
-    {
-        id: 'post-4',
-        title: 'Essential packing checklist for Indian tropical adventures',
-        category: 'Inspiration',
-        author: 'Michael Reed',
-        authorAvatar: '/assets/img/team/4.jpg',
-        date: '20 Dec 2026',
-        readTime: '3 min read',
-        image: '/assets/img/blog/4.jpg',
-        excerpt: 'Expert tips on clothing, footwear, camera gear, and seasonal preparation for diverse terrains.',
-        leadQuote: 'Travel light, travel smart, and leave room in your bag for memories.',
-        leadQuoteCite: 'Packing Pro',
-        leadText: 'Packing for a varied subcontinent journey requires mindful selection and breathable fabrics...',
-        bodyParagraph1: 'Ensure lightweight cottons for coastal zones and warm thermal layers for northern heights...',
-        bodyParagraph2: 'Always carry eco-friendly sunscreen, hydration bottles, and quick-dry shoes...',
-        featured: false,
-        status: 'Draft',
-    },
-];
-
 function getTodayDateFormatted() {
     const d = new Date();
     const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
@@ -99,32 +24,26 @@ function calculateReadTime(text) {
 
 const emptyPost = {
     title: '',
-    category: 'Travel Tips',
-    author: 'Emily Brown',
-    authorAvatar: '/assets/img/team/tst1.jpg',
+    category: '',
+    author: '',
+    authorAvatar: '',
     date: '',
-    readTime: '4 min read',
-    image: '/assets/img/blog/1.jpg',
-    gallery: [
-        '/assets/img/insta/01.jpg',
-        '/assets/img/insta/02.jpg',
-        '/assets/img/insta/03.jpg',
-        '/assets/img/insta/04.jpg',
-        '/assets/img/insta/05.jpg'
-    ],
+    readTime: '',
+    image: '',
+    gallery: [''],
     excerpt: '',
-    leadQuote: 'Dubai is not a city, it’s a vision of the future.',
-    leadQuoteCite: 'Anonymous',
-    leadText: 'Experience the vibrant charm of Dubai, where futuristic architecture meets rich culture and world-class luxury.',
-    bodyParagraph1: 'From desert safaris and traditional souks to luxury shopping malls and fine dining experiences...',
-    bodyParagraph2: 'Immerse yourself in the energy of the city and experience the perfect blend of tradition and modernity...',
-    commentUser: 'Emily Brown',
-    commentRole: 'Traveler',
-    commentAvatar: '/assets/img/team/g1.jpg',
-    commentText: 'Dubai was an unforgettable journey filled with wonderful sights and hospitality.',
+    leadQuote: '',
+    leadQuoteCite: '',
+    leadText: '',
+    bodyParagraph1: '',
+    bodyParagraph2: '',
+    commentUser: '',
+    commentRole: '',
+    commentAvatar: '',
+    commentText: '',
     metaTitle: '',
     metaDescription: '',
-    metaKeywords: 'travel guide, tour packages, luxury vacations, holidays',
+    metaKeywords: '',
     featured: false,
     status: 'Published',
 };
@@ -143,17 +62,18 @@ export default function AdminPostsPage() {
         let isMounted = true;
         setLoading(true);
         Promise.all([
-            getCollectionItems('posts', initialPosts),
-            getCollectionItems('team', [
-                { name: 'Emily Brown', image: '/assets/img/team/tst1.jpg', role: 'Travel Director' },
-                { name: 'Daniel Scott', image: '/assets/img/team/1.jpg', role: 'Senior Guide' },
-                { name: 'Sarah Kim', image: '/assets/img/team/3.jpg', role: 'Destination Specialist' },
-                { name: 'Michael Reed', image: '/assets/img/team/4.jpg', role: 'Guest Experience' },
-            ]),
+            getCollectionItems('posts'),
+            getCollectionItems('team'),
         ]).then(([postsData, teamData]) => {
             if (isMounted) {
                 setPostsList(postsData);
                 setAuthorsList(teamData);
+                setLoading(false);
+            }
+        }).catch((err) => {
+            console.error('Failed to load from Firestore:', err.message);
+            if (isMounted) {
+                setMessage({ type: 'error', text: 'Failed to load data from Firestore: ' + err.message });
                 setLoading(false);
             }
         });
@@ -221,14 +141,18 @@ export default function AdminPostsPage() {
         setMessage(null);
 
         try {
+            const cleanPayload = {
+                ...currentPost,
+                gallery: (currentPost.gallery || []).filter((g) => g && g.trim()),
+            };
             if (modalMode === 'create') {
-                const created = await addCollectionItem('posts', currentPost);
+                const created = await addCollectionItem('posts', cleanPayload);
                 setPostsList((prev) => [created, ...prev]);
                 setMessage({ type: 'success', text: `Article "${currentPost.title}" published successfully.` });
             } else {
-                const updated = await updateCollectionItem('posts', currentPost.id, currentPost);
-                setPostsList((prev) => prev.map((p) => (p.id === currentPost.id ? { ...p, ...updated } : p)));
-                setMessage({ type: 'success', text: `Article "${currentPost.title}" updated successfully.` });
+                const updated = await updateCollectionItem('posts', cleanPayload.id, cleanPayload);
+                setPostsList((prev) => prev.map((p) => (p.id === cleanPayload.id ? { ...p, ...updated } : p)));
+                setMessage({ type: 'success', text: `Article "${cleanPayload.title}" updated successfully.` });
             }
             setModalMode(null);
         } catch (error) {
@@ -285,11 +209,15 @@ export default function AdminPostsPage() {
                                 <tr key={post.id || post.title}>
                                     <td>
                                         <div className="admin-list-main">
-                                            <img
-                                                className="admin-thumb"
-                                                src={post.image || '/assets/img/blog/1.jpg'}
-                                                alt=""
-                                            />
+                                            {post.image ? (
+                                                <img
+                                                    className="admin-thumb"
+                                                    src={post.image}
+                                                    alt=""
+                                                />
+                                            ) : (
+                                                <span className="admin-thumb admin-thumb-empty"></span>
+                                            )}
                                             <div>
                                                 <strong>{post.title}</strong>
                                                 {post.excerpt && (
@@ -302,22 +230,28 @@ export default function AdminPostsPage() {
                                     </td>
                                     <td>
                                         <span className="admin-badge" style={{ background: '#f1f5f9', color: '#334155' }}>
-                                            {post.category || 'Travel Tips'}
+                                            {post.category || '—'}
                                         </span>
                                     </td>
                                     <td>
                                         <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                                            <img
-                                                src={post.authorAvatar || '/assets/img/team/tst1.jpg'}
-                                                alt=""
-                                                style={{ width: '22px', height: '22px', borderRadius: '50%', objectFit: 'cover' }}
-                                            />
-                                            <span>{post.author || 'Emily Brown'}</span>
+                                            {post.authorAvatar ? (
+                                                <img
+                                                    src={post.authorAvatar}
+                                                    alt=""
+                                                    style={{ width: '22px', height: '22px', borderRadius: '50%', objectFit: 'cover' }}
+                                                />
+                                            ) : (
+                                                <span
+                                                    style={{ width: '22px', height: '22px', borderRadius: '50%', flexShrink: 0, background: 'repeating-linear-gradient(45deg, #eef2f7, #eef2f7 6px, #e2e8f0 6px, #e2e8f0 12px)' }}
+                                                ></span>
+                                            )}
+                                            <span>{post.author || '—'}</span>
                                         </div>
                                     </td>
                                     <td>
-                                        <div>{post.date || '28 Dec 2026'}</div>
-                                        <small style={{ color: 'var(--admin-muted)' }}>{post.readTime || '5 min read'}</small>
+                                        <div>{post.date || '—'}</div>
+                                        <small style={{ color: 'var(--admin-muted)' }}>{post.readTime || '—'}</small>
                                     </td>
                                     <td>
                                         <span className={`admin-badge ${post.featured ? '' : 'pending'}`}>
@@ -437,7 +371,7 @@ export default function AdminPostsPage() {
                                     >
                                         {authorsList.map((a) => (
                                             <option key={a.id || a.name} value={a.name}>
-                                                {a.name} ({a.role || 'Writer'})
+                                                {a.name}{a.role ? ` (${a.role})` : ''}
                                             </option>
                                         ))}
                                     </select>
@@ -509,11 +443,17 @@ export default function AdminPostsPage() {
                             <div className="admin-form-field full">
                                 <label>Article Cover Image</label>
                                 <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                                    <img
-                                        src={currentPost.image || '/assets/img/blog/1.jpg'}
-                                        alt=""
-                                        style={{ width: '48px', height: '48px', objectFit: 'cover', borderRadius: '6px', border: '1px solid var(--admin-line)' }}
-                                    />
+                                    {currentPost.image ? (
+                                        <img
+                                            src={currentPost.image}
+                                            alt=""
+                                            style={{ width: '48px', height: '48px', objectFit: 'cover', borderRadius: '6px', border: '1px solid var(--admin-line)' }}
+                                        />
+                                    ) : (
+                                        <span
+                                            style={{ width: '48px', height: '48px', borderRadius: '6px', border: '1px solid var(--admin-line)', flexShrink: 0, background: 'repeating-linear-gradient(45deg, #eef2f7, #eef2f7 6px, #e2e8f0 6px, #e2e8f0 12px)' }}
+                                        ></span>
+                                    )}
                                     <input
                                         value={currentPost.image || ''}
                                         onChange={(e) => setCurrentPost({ ...currentPost, image: e.target.value })}

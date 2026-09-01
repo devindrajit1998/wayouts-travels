@@ -10,96 +10,15 @@ import {
     deleteCollectionItem
 } from '../../../lib/firestoreService';
 
-const initialDestinations = [
-    {
-        id: 'dest-1',
-        name: 'Kashmir & Ladakh',
-        region: 'North India',
-        packages: '5+ Tour Packages',
-        travelers: '2,450+',
-        startingPrice: '₹24,999',
-        bestSeason: 'April – October (Kashmir) / June – Sept (Ladakh)',
-        featured: true,
-        image: '/assets/img/destination/01.jpg',
-        description: 'Pristine Dal Lake shikaras, snowcapped Himalayan peaks, Pangong Tso, and high-altitude mountain passes.',
-        status: 'Published',
-    },
-    {
-        id: 'dest-2',
-        name: 'Kerala & Backwaters',
-        region: 'South India',
-        packages: '6+ Tour Packages',
-        travelers: '3,180+',
-        startingPrice: '₹19,999',
-        bestSeason: 'September – March',
-        featured: true,
-        image: '/assets/img/destination/a.jpg',
-        description: 'Serene Alleppey houseboats, Munnar tea estates, Ayurvedic wellness retreats, and coastal palm beaches.',
-        status: 'Published',
-    },
-    {
-        id: 'dest-3',
-        name: 'Rajasthan & Golden Triangle',
-        region: 'North India',
-        packages: '7+ Tour Packages',
-        travelers: '4,200+',
-        startingPrice: '₹22,999',
-        bestSeason: 'October – March',
-        featured: true,
-        image: '/assets/img/destination/d.jpg',
-        description: 'Majestic Jaipur forts, Udaipur royal palaces, Thar desert camel safaris, and rich heritage folklore.',
-        status: 'Published',
-    },
-    {
-        id: 'dest-4',
-        name: 'Goa Coastline',
-        region: 'West India',
-        packages: '4+ Tour Packages',
-        travelers: '5,600+',
-        startingPrice: '₹14,999',
-        bestSeason: 'October – May',
-        featured: true,
-        image: '/assets/img/destination/c.jpg',
-        description: 'Sun-kissed Arabian sea beaches, Portuguese heritage churches, luxury beach resorts, and nightlife.',
-        status: 'Published',
-    },
-    {
-        id: 'dest-5',
-        name: 'Sikkim & Darjeeling',
-        region: 'East & Northeast India',
-        packages: '4+ Tour Packages',
-        travelers: '1,840+',
-        startingPrice: '₹21,999',
-        bestSeason: 'March – June / September – December',
-        featured: true,
-        image: '/assets/img/destination/02.jpg',
-        description: 'Kangchenjunga sunrise vistas, Buddhist monasteries, toy train rides, and alpine rhododendron valleys.',
-        status: 'Published',
-    },
-    {
-        id: 'dest-6',
-        name: 'Andaman & Nicobar Islands',
-        region: 'Islands & Coastal India',
-        packages: '4+ Tour Packages',
-        travelers: '1,950+',
-        startingPrice: '₹28,999',
-        bestSeason: 'October – May',
-        featured: true,
-        image: '/assets/img/destination/f.jpg',
-        description: 'Radhanagar blue waters, scuba diving at Havelock Island, coral reefs, and tranquil cellular heritage.',
-        status: 'Published',
-    },
-];
-
 const emptyDestination = {
     name: '',
-    region: 'North India',
-    packages: '4+ Tour Packages',
-    travelers: '500+',
-    startingPrice: '₹19,999',
-    bestSeason: 'October – March',
+    region: '',
+    packages: '',
+    travelers: '',
+    startingPrice: '',
+    bestSeason: '',
     featured: false,
-    image: '/assets/img/destination/01.jpg',
+    image: '',
     description: '',
     status: 'Published',
 };
@@ -118,12 +37,18 @@ export default function AdminDestinationsPage() {
         let isMounted = true;
         setLoading(true);
         Promise.all([
-            getCollectionItems('destinations', initialDestinations),
-            getCollectionItems('tours', []),
+            getCollectionItems('destinations'),
+            getCollectionItems('tours'),
         ]).then(([destsData, toursData]) => {
             if (isMounted) {
                 setDestinationsList(destsData);
                 setToursList(toursData);
+                setLoading(false);
+            }
+        }).catch((err) => {
+            console.error('Failed to load from Firestore:', err.message);
+            if (isMounted) {
+                setMessage({ type: 'error', text: 'Failed to load data from Firestore: ' + err.message });
                 setLoading(false);
             }
         });
@@ -262,11 +187,15 @@ export default function AdminDestinationsPage() {
                                 <tr key={dest.id || dest.name}>
                                     <td>
                                         <div className="admin-list-main">
-                                            <img
-                                                className="admin-thumb"
-                                                src={dest.image || '/assets/img/destination/a.jpg'}
-                                                alt=""
-                                            />
+                                            {dest.image ? (
+                                                <img
+                                                    className="admin-thumb"
+                                                    src={dest.image}
+                                                    alt=""
+                                                />
+                                            ) : (
+                                                <span className="admin-thumb admin-thumb-empty"></span>
+                                            )}
                                             <div>
                                                 <strong>{dest.name}</strong>
                                                 {dest.bestSeason && (
@@ -282,9 +211,9 @@ export default function AdminDestinationsPage() {
                                         <strong>{dest.packages}</strong>
                                     </td>
                                     <td>
-                                        <strong style={{ color: 'var(--admin-primary)' }}>{dest.startingPrice || '₹39,999'}</strong>
+                                        <strong style={{ color: 'var(--admin-primary)' }}>{dest.startingPrice || '—'}</strong>
                                     </td>
-                                    <td>{dest.travelers || '500+'}</td>
+                                    <td>{dest.travelers || '—'}</td>
                                     <td>
                                         <span className={`admin-badge ${dest.featured ? '' : 'pending'}`}>
                                             {dest.featured ? 'Yes' : 'No'}
@@ -480,11 +409,17 @@ export default function AdminDestinationsPage() {
                             <div className="admin-form-field full">
                                 <label>Destination Showcase Image</label>
                                 <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                                    <img
-                                        src={currentDest.image || '/assets/img/destination/a.jpg'}
-                                        alt=""
-                                        style={{ width: '48px', height: '48px', objectFit: 'cover', borderRadius: '6px', border: '1px solid var(--admin-line)' }}
-                                    />
+                                    {currentDest.image ? (
+                                        <img
+                                            src={currentDest.image}
+                                            alt=""
+                                            style={{ width: '48px', height: '48px', objectFit: 'cover', borderRadius: '6px', border: '1px solid var(--admin-line)' }}
+                                        />
+                                    ) : (
+                                        <span
+                                            style={{ width: '48px', height: '48px', borderRadius: '6px', border: '1px solid var(--admin-line)', flexShrink: 0, background: 'repeating-linear-gradient(45deg, #eef2f7, #eef2f7 6px, #e2e8f0 6px, #e2e8f0 12px)' }}
+                                        ></span>
+                                    )}
                                     <input
                                         value={currentDest.image || ''}
                                         onChange={(e) => setCurrentDest({ ...currentDest, image: e.target.value })}

@@ -1,11 +1,40 @@
 'use client';
 
-import { defaultHomeContent } from '../../lib/homeContent';
+import { useState, useEffect } from 'react';
+import { getHomeContent } from '../../lib/homeContent';
+import { LoadingState, ErrorState } from './DataState';
 
 /**
- * Data-driven About section. Content is editable from /admin/home (About tab).
+ * Data-driven About section. Content is editable from /admin/home (About tab)
+ * and stored in Firestore (siteContent/home) — the single source of truth.
  */
-export default function AboutSection({ content = defaultHomeContent.about }) {
+export default function AboutSection({ content: initialContent = null }) {
+    const [content, setContent] = useState(initialContent);
+    const [error, setError] = useState(null);
+
+    useEffect(() => {
+        if (initialContent) return;
+        let isMounted = true;
+        getHomeContent()
+            .then((home) => {
+                if (isMounted) setContent(home ? home.about : null);
+            })
+            .catch((err) => {
+                console.error('Failed to load about section:', err.message);
+                if (isMounted) setError(err);
+            });
+        return () => {
+            isMounted = false;
+        };
+    }, [initialContent]);
+
+    if (error) {
+        return <ErrorState label="We could not load the about section. Please try again." />;
+    }
+    if (!content) {
+        return <LoadingState label="Loading about section…" />;
+    }
+
     const {
         subtitle,
         titlePart1,
@@ -42,7 +71,7 @@ export default function AboutSection({ content = defaultHomeContent.about }) {
                             </div>
                         )}
                         {description ? <p className="wow fadeInRight" data-wow-delay=".3s">{description}</p> : null}
-                        {features.length > 0 && (
+                        {features && features.length > 0 && (
                             <ul className="listo mb-30">
                                 {features.map((feature, index) => (
                                     <li className="wow fadeInUp" data-wow-delay={`.${index + 1}s`} key={index}>
@@ -52,7 +81,7 @@ export default function AboutSection({ content = defaultHomeContent.about }) {
                             </ul>
                         )}
                         <div className="customers d-flex align-items-center">
-                            {avatars.length > 0 && (
+                            {avatars && avatars.length > 0 && (
                                 <div className="c-img d-flex align-items-center wow fadeInUp" data-wow-delay=".8s">
                                     <ul className="d-flex duru-mask-reveal-horizontal">
                                         {avatars.map((avatar, index) => (

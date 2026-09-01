@@ -5,7 +5,7 @@
     Author: DuruThemes
     Author URI: https://themeforest.net/user/duruthemes
     Version: 1.0
-    
+
     ==========================================================================
     TABLE OF CONTENTS
     ==========================================================================
@@ -36,6 +36,7 @@
     25. TEAM SLIDER
     26. GALLERY SCROLL SLIDER
     27. TRAVEL HERO SLIDER
+    28. CONTENT-AWARE RE-INITIALIZATION (React/Firestore support)
 -----------------------------------------------------------------------------------*/
 
 (function ($) {
@@ -56,408 +57,74 @@
     }
 
     /* ==========================================================================
-       2. DOCUMENT READY
+       28. CONTENT-AWARE RE-INITIALIZATION
+       --------------------------------------------------------------------------
+       Public pages fetch content from Firestore asynchronously. When custom.js
+       first runs, the DOM may only contain loading spinners. This section keeps
+       track of every animation instance created against the DOM so they can be
+       torn down and re-created once real content mounts.
+
+       - window.wayoutsRefreshAnimations(): full teardown + rebuild. Safe to call
+         any number of times.
+       - A MutationObserver watches #smooth-wrapper for added nodes and triggers
+         a debounced refresh, so late-mounted React content always gets animated.
        ========================================================================== */
-    $(document).ready(function () {
+    var wayoutsState = {
+        scrollCtx: null,        // gsap.context() for all ScrollTrigger animations
+        swipers: [],            // live Swiper instances
+        isotopes: [],           // live Isotope instances
+        marquees: [],           // live marquee instances
+        counters: [],           // live counterUp instances
+        wow: null,              // WOW instance
+        observer: null,         // MutationObserver for late content
+        refreshTimer: null,     // debounce timer
+        galleryFilterBound: false, // delegated gallery filter handler flag
+        introDone: false,          // preloader intro timeline has run
+        introFallback: null,       // timer that dismisses preloader if hero never mounts
+        initialized: false
+    };
 
-        /* ==========================================================================
-           WOW ANIMATION
-           ========================================================================== */
-        if (typeof WOW !== "undefined") {
-            var wow = new WOW({
-                animateClass: 'animated',
-                offset: 100
-            });
-            wow.init();
+    function isAdminPage() {
+        if (typeof window === "undefined") return false;
+        return window.location.pathname.startsWith('/admin') ||
+            window.location.pathname.startsWith('/account');
+    }
+
+    var isRefreshing = false;
+
+    function teardownAnimations() {
+        // Kill GSAP ScrollTrigger animations created inside our context
+        if (wayoutsState.scrollCtx) {
+            try { wayoutsState.scrollCtx.revert(); } catch (e) { /* noop */ }
+            wayoutsState.scrollCtx = null;
         }
-
-        /* ==========================================================================
-           3. CURSOR ANIMATION
-           ========================================================================== */
-        (function () {
-            const link = document.querySelectorAll('.hover-this');
-            const cursor = document.querySelector('.cursor');
-            if (!cursor) return;
-
-            const animateit = function (e) {
-                const hoverAnim = this.querySelector('.hover-anim');
-                if (!hoverAnim) return;
-                const { offsetX: x, offsetY: y } = e;
-                const { offsetWidth: width, offsetHeight: height } = this;
-                const move = 100;
-                const xMove = x / width * (move * 2) - move;
-                const yMove = y / height * (move * 2) - move;
-
-                hoverAnim.style.transform = `translate(${xMove}px, ${yMove}px)`;
-                if (e.type === 'mouseleave') {
-                    hoverAnim.style.transform = '';
-                }
-            };
-
-            const editCursor = e => {
-                const { clientX: x, clientY: y } = e;
-                cursor.style.left = x + 'px';
-                cursor.style.top = y + 'px';
-            };
-
-            link.forEach(b => b.addEventListener('mousemove', animateit));
-            link.forEach(b => b.addEventListener('mouseleave', animateit));
-            window.addEventListener('mousemove', editCursor);
-
-            $("a, .cursor-pointer").hover(function () {
-                $(".cursor").addClass("cursor-active");
-            }, function () {
-                $(".cursor").removeClass("cursor-active");
-            });
-        })();
-
-        /* ==========================================================================
-           4. SMOOTH SCROLL NAV (SCROLLIT)
-           ========================================================================== */
-        if ($.scrollIt) {
-            $.scrollIt({
-                upKey: 38,
-                downKey: 40,
-                easing: 'linear',
-                scrollTime: 600,
-                activeClass: 'active',
-                onPageChange: null,
-                topOffset: -100
-            });
-        }
-
-        /* ==========================================================================
-           5. ONEPAGE MENU CLICK
-           ========================================================================== */
-        $('a[data-scroll-nav]').on('click', function (e) {
-            var href = $(this).attr('href');
-            if (href && href !== "#" && href !== "javascript:void(0)") {
-                return;
-            }
-            e.preventDefault();
-            var target = parseInt($(this).attr('data-scroll-nav'), 10);
-            var targetSection = $('[data-scroll-index="' + target + '"]');
-            if (targetSection.length) {
-                $('html, body').animate({
-                    scrollTop: targetSection.offset().top - 100
-                }, 600);
-            }
-            if ($('.navbar-collapse').hasClass('show')) {
-                $('.navbar-collapse').collapse('hide');
-            }
+        // Destroy Swipers
+        wayoutsState.swipers.forEach(function (s) {
+            try { s.destroy(true, true); } catch (e) { /* noop */ }
         });
-
-        /* ==========================================================================
-           6. NAVBAR SCROLL BACKGROUND
-           ========================================================================== */
-        wind.on("scroll", function () {
-            var bodyScroll = wind.scrollTop(),
-                navbar = $(".navbar"),
-                logo = $(".navbar .logo > img");
-            if (bodyScroll > 100) {
-                navbar.addClass("nav-scroll");
-                if (navbar.hasClass("nav-inner")) {
-                    logo.attr('src', '/assets/img/logo-light.png');
-                }
-            } else {
-                navbar.removeClass("nav-scroll");
-                if (navbar.hasClass("nav-inner")) {
-                    logo.attr('src', '/assets/img/logo-dark.png');
-                } else {
-                    logo.attr('src', '/assets/img/logo-light.png');
-                }
-            }
+        wayoutsState.swipers = [];
+        // Destroy Isotope instances
+        wayoutsState.isotopes.forEach(function (i) {
+            try { i.destroy(); } catch (e) { /* noop */ }
         });
-
-        /* ==========================================================================
-           7. MOBILE MENU CLOSE
-           ========================================================================== */
-        $(document).on('click', '.navbar-nav .dropdown-item a', function () {
-            $(".navbar-collapse").removeClass("show");
+        wayoutsState.isotopes = [];
+        // Destroy marquees
+        wayoutsState.marquees.forEach(function (m) {
+            try { m.destroy(); } catch (e) { /* noop */ }
         });
+        wayoutsState.marquees = [];
+        // Note: counters are intentionally NOT torn down — counterUp has no
+        // destroy() and re-initializing would double-bind its internals.
+        // initCounters() skips already-initialized elements instead.
+        wayoutsState.counters = [];
+        // Note: WOW is intentionally NOT stopped — its live MutationObserver
+        // automatically picks up newly mounted .wow elements.
+    }
 
-        /* ==========================================================================
-           8. ROLLING TEXT
-           ========================================================================== */
-        $('.rolling-text').each(function () {
-            const $el = $(this);
-            const innerText = $el.text();
-            $el.empty();
-            const $textContainer = $('<div>').addClass('block');
-            for (const letter of innerText) {
-                const $span = $('<span>').addClass('letter').text(letter.trim() === '' ? '\xa0' : letter);
-                $textContainer.append($span);
-            }
-            $el.append($textContainer).append($textContainer.clone());
-        });
-        $(document).on('mouseenter', '.rolling-text', function () {
-            $(this).removeClass('play');
-        });
+    function initScrollAnimations() {
+        if (typeof gsap === "undefined" || typeof ScrollTrigger === "undefined") return;
 
-
-
-        /* ==========================================================================
-           9. DYNAMIC BACKGROUND IMAGE
-           ========================================================================== */
-        var pageSection = $(".bg-img, section");
-        pageSection.each(function () {
-            if ($(this).attr("data-background")) {
-                $(this).css("background-image", "url(" + $(this).data("background") + ")");
-            }
-        });
-
-        /* ==========================================================================
-           10. YOUTUBE POPUP
-           ========================================================================== */
-        $(document).on('click', 'a.vid', function (e) {
-            e.preventDefault();
-            if ($(this).YouTubePopUp) {
-                $(this).YouTubePopUp();
-            }
-        });
-
-        /* ==========================================================================
-           11. MAGNIFIC POPUP
-           ========================================================================== */
-        if ($.fn.magnificPopup) {
-            $('.gallery').magnificPopup({
-                delegate: '.popimg',
-                type: 'image',
-                gallery: {
-                    enabled: true
-                }
-            });
-            $(".img-zoom").magnificPopup({
-                type: "image",
-                closeOnContentClick: true,
-                mainClass: "mfp-fade",
-                gallery: {
-                    enabled: true,
-                    navigateByImgClick: true,
-                    preload: [0, 1]
-                }
-            });
-            $('.magnific-youtube, .magnific-vimeo, .magnific-custom').magnificPopup({
-                disableOn: 700,
-                type: 'iframe',
-                mainClass: 'mfp-fade',
-                removalDelay: 300,
-                preloader: false,
-                fixedContentPos: false
-            });
-            $('.image-popup-vertical-fit').magnificPopup({
-                type: 'image',
-                closeOnContentClick: true,
-                mainClass: 'mfp-img-mobile',
-                image: {
-                    verticalFit: true
-                }
-            });
-        }
-
-        /* ==========================================================================
-           12. ISOTOPE GALLERY
-           ========================================================================== */
-        var $grid = $('.gallery-wrap');
-        if ($grid.length && $.fn.isotope) {
-            $grid.isotope({
-                itemSelector: '.gallery-item',
-                percentPosition: true,
-                layoutMode: 'masonry',
-                transitionDuration: '0.6s'
-            });
-            if ($.fn.imagesLoaded) {
-                $grid.imagesLoaded(function () {
-                    $grid.isotope('layout');
-                    if (typeof ScrollTrigger !== 'undefined') {
-                        ScrollTrigger.refresh();
-                    }
-                });
-            }
-            $('.gallery-filter li').on('click', function () {
-                $('.gallery-filter li').removeClass('active');
-                $(this).addClass('active');
-                var filterValue = $(this).attr('data-filter');
-                $grid.isotope({
-                    filter: filterValue
-                });
-                setTimeout(function () {
-                    $grid.isotope('layout');
-                }, 50);
-            });
-        }
-
-        if ($.fn.isotope) {
-            $('.tours-isotope').isotope({
-                itemSelector: '.items'
-            });
-        }
-
-        /* ==========================================================================
-           13. SCROLL BACK TO TOP
-           ========================================================================== */
-        var progressPath = document.querySelector('.progress-wrap path');
-        if (progressPath) {
-            var pathLength = progressPath.getTotalLength();
-            progressPath.style.transition = progressPath.style.WebkitTransition = 'none';
-            progressPath.style.strokeDasharray = pathLength + ' ' + pathLength;
-            progressPath.style.strokeDashoffset = pathLength;
-            progressPath.getBoundingClientRect();
-            progressPath.style.transition = progressPath.style.WebkitTransition = 'stroke-dashoffset 10ms linear';
-            var updateProgress = function () {
-                var scroll = $(window).scrollTop();
-                var height = $(document).height() - $(window).height();
-                var progress = pathLength - (scroll * pathLength / height);
-                progressPath.style.strokeDashoffset = progress;
-            };
-            updateProgress();
-            $(window).on('scroll', updateProgress);
-            var offset = 150;
-            var duration = 550;
-            jQuery(window).on('scroll', function () {
-                if (jQuery(this).scrollTop() > offset) {
-                    jQuery('.progress-wrap').addClass('active-progress');
-                } else {
-                    jQuery('.progress-wrap').removeClass('active-progress');
-                }
-            });
-            jQuery('.progress-wrap').on('click', function (event) {
-                event.preventDefault();
-                jQuery('html, body').animate({
-                    scrollTop: 0
-                }, duration);
-                return false;
-            });
-        }
-
-        /* ==========================================================================
-           14. ACCORDION FAQ
-           ========================================================================== */
-        if ($(".accordion-box").length) {
-            $(document).on("click", ".accordion-box .acc-btn", function () {
-                var outerBox = $(this).closest(".accordion-box");
-                var target = $(this).closest(".accordion");
-                if ($(this).next(".acc-content").is(":visible")) {
-                    $(this).removeClass("active");
-                    $(this).next(".acc-content").slideUp(300);
-                    outerBox.children(".accordion").removeClass("active-block");
-                } else {
-                    outerBox.find(".accordion .acc-btn").removeClass("active");
-                    $(this).addClass("active");
-                    outerBox.children(".accordion").removeClass("active-block");
-                    outerBox.find(".accordion").children(".acc-content").slideUp(300);
-                    target.addClass("active-block");
-                    $(this).next(".acc-content").slideDown(300);
-                }
-            });
-        }
-
-        /* ==========================================================================
-           15. CUSTOM MAGNIFIC POPUP
-           ========================================================================== */
-        $(document).on('click', '.popup-img', function (e) {
-            e.preventDefault();
-            var src = $(this).attr('href') || $(this).data('src');
-            var galleryName = $(this).data('gallery');
-            var items;
-            var galleryEnabled = false;
-            var index = 0;
-            if (galleryName) {
-                items = $('.popup-img').filter('[data-gallery="' + galleryName + '"]').map(function () {
-                    return {
-                        src: $(this).attr('href') || $(this).data('src')
-                    };
-                }).get();
-                galleryEnabled = true;
-                index = items.findIndex(function (it) {
-                    return it.src === src;
-                });
-            } else {
-                items = {
-                    src: src
-                };
-            }
-            $.magnificPopup.open({
-                items: items,
-                type: 'image',
-                gallery: {
-                    enabled: galleryEnabled
-                },
-                image: {
-                    markup: '<div class="mfp-figure">' + '<div class="close-btn close-icon" role="button">&#215;</div>' + '<div class="mfp-img"></div>' + '<div class="close-btn close-bottom" role="button">閉じる</div>' + '</div>'
-                },
-                index: index,
-                callbacks: {
-                    open: function () {
-                        $(document).off('click.mfpClose', '.close-btn').on('click.mfpClose', '.close-btn', function () {
-                            $.magnificPopup.close();
-                        });
-                    },
-                    close: function () {
-                        $(document).off('click.mfpClose', '.close-btn');
-                    }
-                }
-            });
-        });
-
-        /* ==========================================================================
-           16. BUTTON ACTIVE TOGGLE
-           ========================================================================== */
-        $(document).on('click', '.butn-arrow, .butn-arrow2', function () {
-            $(this).toggleClass('active');
-        });
-
-        /* ==========================================================================
-           17. GSAP SVG PRELOADER
-           ========================================================================== */
-        if (typeof gsap !== "undefined") {
-            const svg = document.getElementById("svg");
-            if (svg) {
-                const tl = gsap.timeline();
-                const curve = "M0 502S175 272 500 272s500 230 500 230V0H0Z";
-                const flat = "M0 2S175 1 500 1s500 1 500 1V0H0Z";
-                tl.to(".loader-wrap-heading .load-text, .loader-wrap-heading .cont", {
-                    delay: 1.5,
-                    y: -100,
-                    opacity: 0,
-                });
-                tl.to(svg, {
-                    duration: 0.5,
-                    attr: {
-                        d: curve
-                    },
-                    ease: "power2.easeIn",
-                }).to(svg, {
-                    duration: 0.5,
-                    attr: {
-                        d: flat
-                    },
-                    ease: "power2.easeOut",
-                });
-                tl.to(".loader-wrap", {
-                    y: -1500,
-                });
-                tl.to(".loader-wrap", {
-                    zIndex: -1,
-                    display: "none",
-                });
-                tl.from("header", {
-                    y: 200,
-                }, "-=1.5");
-                tl.from("header .container", {
-                    y: 40,
-                    opacity: 0,
-                    delay: 0.3,
-                }, "-=1.5");
-            }
-        }
-
-
-
-        /* ==========================================================================
-           18. GSAP SCROLLTRIGGER ANIMATIONS
-           ========================================================================== */
-        if (typeof gsap !== "undefined" && typeof ScrollTrigger !== "undefined") {
+        wayoutsState.scrollCtx = gsap.context(function () {
             function createScrollAnimation(selector, options) {
                 gsap.utils.toArray(selector).forEach((el) => {
                     let tl = gsap.timeline({
@@ -650,68 +317,153 @@
                 from: { filter: "hue-rotate(0deg)" },
                 to: { filter: "hue-rotate(180deg)", ease: "none" }
             });
-        }
 
-        /* ==========================================================================
-           19. MARQUEE
-           ========================================================================== */
-        if ($.fn.marquee) {
-            $('.js-marquee-wrapper').marquee({
-                speed: 100,
-                gap: 30,
-                delayBeforeStart: 0,
-                direction: 'left',
-                duplicated: true,
-                pauseOnHover: true,
-                startVisible: true,
-            });
-        }
+            // Elastic card animation (was section 24)
+            const elasticCards = gsap.utils.toArray(".image-stack-card");
+            if (elasticCards.length) {
+                elasticCards.forEach((card, i) => {
+                    card.style.zIndex = elasticCards.length - i;
+                });
+                const elasticTl = gsap.timeline({
+                    scrollTrigger: {
+                        trigger: ".image-stack",
+                        start: "top 80%",
+                        end: "+=350",
+                        scrub: 1
+                    }
+                });
+                elasticCards.forEach((card, i) => {
+                    const offset = i - (elasticCards.length - 1) / 2;
+                    elasticTl.to(card, {
+                        x: offset * 180,
+                        rotation: offset * 8,
+                        ease: "none"
+                    }, 0);
+                });
+                let highestZ = elasticCards.length;
+                const onElasticEnter = (e) => {
+                    const card = e.currentTarget;
+                    highestZ++;
+                    gsap.to(card, {
+                        zIndex: highestZ,
+                        scale: 1.05,
+                        y: -10,
+                        duration: 0.3,
+                        ease: "power2.out"
+                    });
+                };
+                const onElasticLeave = (e) => {
+                    gsap.to(e.currentTarget, {
+                        scale: 1,
+                        y: 0,
+                        duration: 0.3,
+                        ease: "power2.out"
+                    });
+                };
+                elasticCards.forEach(card => {
+                    card.addEventListener("mouseenter", onElasticEnter);
+                    card.addEventListener("mouseleave", onElasticLeave);
+                });
+                // Cleanup runs when the gsap.context is reverted on refresh
+                return function () {
+                    elasticCards.forEach(card => {
+                        card.removeEventListener("mouseenter", onElasticEnter);
+                        card.removeEventListener("mouseleave", onElasticLeave);
+                    });
+                };
+            }
 
-        /* ==========================================================================
-           20. COUNTER
-           ========================================================================== */
-        if ($.fn.counterUp) {
-            $('.counter').counterUp({
-                delay: 10,
-                time: 3000
-            });
-        }
+            // Stackcard animation (was section 18b). The original template pinned
+            // .stsec .stack-title based on viewport width alone — requiring
+            // .stackCard elements was a regression that disabled the pinned
+            // stack-title scroll effect entirely (the tours section has no
+            // .stackCard markup). Pin is restored; the card-stacking loop only
+            // runs when .stackCard elements actually exist.
+            var currentWidth = $(window).width();
+            if (currentWidth > 991 && document.querySelector('.stsec .stack-title')) {
+                const fe = gsap.timeline({
+                    scrollTrigger: {
+                        trigger: ".stsec .stack-title",
+                        start: "center center",
+                        endTrigger: ".stsec",
+                        end: "bottom bottom",
+                        pin: true,
+                        pinSpacing: false,
+                    }
+                });
+                let cardsList = gsap.utils.toArray(".stackCard");
+                if (cardsList.length) {
+                    let stickDistance = 0;
+                    let lastCardST = ScrollTrigger.create({
+                        trigger: cardsList[cardsList.length - 1],
+                        start: "center center"
+                    });
+                    cardsList.forEach((card, index) => {
+                        ScrollTrigger.create({
+                            trigger: card,
+                            start: "center center",
+                            end: () => lastCardST.start + stickDistance,
+                            pin: true,
+                            pinSpacing: false,
+                            scrub: true,
+                            snap: true,
+                            ease: "power4.out",
+                            onUpdate: (self) => {
+                                const progress = self.progress;
+                                const EvenOdd = index % 2 === 0;
+                                gsap.to(card, {
+                                    scaleX: 1 - progress * 0.2,
+                                    x: index * 20,
+                                    filter: `grayscale(${progress * 20}%)`,
+                                    top: index * 20,
+                                    rotate: EvenOdd ? -3 * progress : 3 * progress,
+                                });
+                            }
+                        });
+                    });
+                }
+            }
+        });
+    }
 
-        /* ==========================================================================
-           21. SWIPER SLIDER
-           ========================================================================== */
-        if (typeof Swiper !== "undefined") {
-            var parallaxSlider;
-            var parallaxSliderOptions = {
-                speed: 1000,
-                autoplay: true,
-                parallax: true,
-                loop: true,
-                on: {
-                    init: function () {
-                        var swiper = this;
-                        for (var i = 0; i < swiper.slides.length; i++) {
-                            $(swiper.slides[i]).find('.bg-img').attr({
-                                'data-swiper-parallax': 0.75 * swiper.width
-                            });
-                        }
-                    },
-                    resize: function () {
-                        this.update();
+    function initSwipers() {
+        if (typeof Swiper === "undefined") return;
+
+        var parallaxSlider;
+        var parallaxSliderOptions = {
+            speed: 1000,
+            autoplay: true,
+            parallax: true,
+            loop: true,
+            on: {
+                init: function () {
+                    var swiper = this;
+                    for (var i = 0; i < swiper.slides.length; i++) {
+                        $(swiper.slides[i]).find('.bg-img').attr({
+                            'data-swiper-parallax': 0.75 * swiper.width
+                        });
                     }
                 },
-                pagination: {
-                    el: '.slider-prlx .parallax-slider .swiper-pagination',
-                    type: 'fraction',
-                    clickable: true
-                },
-                navigation: {
-                    nextEl: '.slider-prlx .parallax-slider .next-ctrl',
-                    prevEl: '.slider-prlx .parallax-slider .prev-ctrl'
+                resize: function () {
+                    this.update();
                 }
-            };
+            },
+            pagination: {
+                el: '.slider-prlx .parallax-slider .swiper-pagination',
+                type: 'fraction',
+                clickable: true
+            },
+            navigation: {
+                nextEl: '.slider-prlx .parallax-slider .next-ctrl',
+                prevEl: '.slider-prlx .parallax-slider .prev-ctrl'
+            }
+        };
+        if ($('.slider-prlx .parallax-slider').length) {
             parallaxSlider = new Swiper('.slider-prlx .parallax-slider', parallaxSliderOptions);
+            wayoutsState.swipers.push(parallaxSlider);
+        }
 
+        if ($('.swiper-testim').length) {
             var swiperTestim = new Swiper('.swiper-testim', {
                 spaceBetween: 0,
                 speed: 1000,
@@ -724,7 +476,10 @@
                     prevEl: '.swiper-testim .swiper-button-prev'
                 },
             });
+            wayoutsState.swipers.push(swiperTestim);
+        }
 
+        if ($('.testimonials .swiper-img').length) {
             var swiperTestimImg = new Swiper('.testimonials .swiper-img', {
                 slidesPerView: 1,
                 spaceBetween: 0,
@@ -740,7 +495,10 @@
                     prevEl: '.testimonials .controls .prev-ctrl'
                 },
             });
+            wayoutsState.swipers.push(swiperTestimImg);
+        }
 
+        if ($('.testimonials .swiper-content').length) {
             var swiperTestimContent = new Swiper('.testimonials .swiper-content', {
                 slidesPerView: 1,
                 spaceBetween: 0,
@@ -755,40 +513,769 @@
                     prevEl: '.testimonials .controls .prev-ctrl'
                 },
             });
+            wayoutsState.swipers.push(swiperTestimContent);
+        }
 
+        if ($(".work-crsol").length) {
             var swiperWork = new Swiper(".work-crsol", {
                 slidesPerView: "auto",
                 spaceBetween: 60,
                 loop: true
             });
+            wayoutsState.swipers.push(swiperWork);
         }
+
+        // Team slider (was section 25)
+        if ($(".team-slider").length) {
+            var swiperTeam = new Swiper(".team-slider", {
+                slidesPerView: 4,
+                spaceBetween: 25,
+                loop: true,
+                speed: 900,
+                autoplay: false,
+                breakpoints: {
+                    0: {
+                        slidesPerView: 1
+                    },
+                    768: {
+                        slidesPerView: 2
+                    },
+                    1200: {
+                        slidesPerView: 4
+                    }
+                }
+            });
+            wayoutsState.swipers.push(swiperTeam);
+        }
+
+        // Gallery scroll slider (was section 26)
+        if ($(".galleryscroll-slider").length) {
+            var swiperGalleryScroll = new Swiper(".galleryscroll-slider", {
+                slidesPerView: 4,
+                spaceBetween: 25,
+                loop: true,
+                speed: 900,
+                autoplay: false,
+                breakpoints: {
+                    0: {
+                        slidesPerView: 1
+                    },
+                    768: {
+                        slidesPerView: 2
+                    },
+                    1200: {
+                        slidesPerView: 4
+                    }
+                }
+            });
+            wayoutsState.swipers.push(swiperGalleryScroll);
+        }
+
+        // Travel hero slider (was section 27)
+        if ($('.travel-hero-slider').length) {
+            var travelHeroSlider = new Swiper(".travel-hero-slider", {
+                grabCursor: true,
+                speed: 500,
+                effect: "slide",
+                loop: false,
+                mousewheel: {
+                    invert: false,
+                    sensitivity: 1,
+                    releaseOnEdges: true,
+                },
+            });
+            travelHeroSlider.enable();
+            wayoutsState.swipers.push(travelHeroSlider);
+        }
+    }
+
+    function initIsotope() {
+        var $grid = $('.gallery-wrap');
+        if ($grid.length && $.fn.isotope) {
+            $grid.isotope({
+                itemSelector: '.gallery-item',
+                percentPosition: true,
+                layoutMode: 'masonry',
+                transitionDuration: '0.6s'
+            });
+            var gridIso = $grid.data('isotope');
+            if (gridIso) wayoutsState.isotopes.push(gridIso);
+            if ($.fn.imagesLoaded) {
+                $grid.imagesLoaded(function () {
+                    $grid.isotope('layout');
+                    if (typeof ScrollTrigger !== 'undefined') {
+                        ScrollTrigger.refresh();
+                    }
+                });
+            }
+            // Delegated filter handler — bound once per document, reads the
+            // live grid from the DOM so it survives animation refreshes.
+            if (!wayoutsState.galleryFilterBound) {
+                wayoutsState.galleryFilterBound = true;
+                $(document).on('click', '.gallery-filter li', function () {
+                    $('.gallery-filter li').removeClass('active');
+                    $(this).addClass('active');
+                    var filterValue = $(this).attr('data-filter');
+                    var $liveGrid = $(this).closest('.gallery-wrap').length
+                        ? $(this).closest('.gallery-wrap')
+                        : $('.gallery-wrap');
+                    $liveGrid.isotope({
+                        filter: filterValue
+                    });
+                    setTimeout(function () {
+                        $liveGrid.isotope('layout');
+                    }, 50);
+                });
+            }
+        }
+
+        if ($.fn.isotope) {
+            var $toursGrid = $('.tours-isotope');
+            if ($toursGrid.length) {
+                $toursGrid.isotope({
+                    itemSelector: '.items'
+                });
+                var toursIso = $toursGrid.data('isotope');
+                if (toursIso) wayoutsState.isotopes.push(toursIso);
+            }
+        }
+    }
+
+    function initMarquee() {
+        if ($.fn.marquee) {
+            var $marquee = $('.js-marquee-wrapper');
+            if ($marquee.length) {
+                $marquee.marquee({
+                    speed: 100,
+                    gap: 30,
+                    delayBeforeStart: 0,
+                    direction: 'left',
+                    duplicated: true,
+                    pauseOnHover: true,
+                    startVisible: true,
+                });
+                var mq = $marquee.data('plugin_marquee');
+                if (mq) wayoutsState.marquees.push(mq);
+            }
+        }
+    }
+
+    function initCounters() {
+        if ($.fn.counterUp) {
+            $('.counter').each(function () {
+                var $c = $(this);
+                if ($c.attr('data-counter-initialized')) return;
+                $c.attr('data-counter-initialized', '1');
+                $c.counterUp({
+                    delay: 10,
+                    time: 3000
+                });
+                wayoutsState.counters.push($c);
+            });
+        }
+    }
+
+    var t2HandlerBound = false;
+
+    function layoutTestimonials2(valueObj) {
+        var totalWidth = valueObj.outerWidth(),
+            slidingLength = valueObj.find('.item').length;
+        if (!slidingLength) return;
+        var devideRightPadding = parseInt(valueObj.css('padding-right')) / slidingLength,
+            devideLeftPadding = parseInt(valueObj.css('padding-left')) / slidingLength,
+            usageWidth = (slidingLength * 12.5) + 12.5 + devideRightPadding + devideLeftPadding,
+            useWidth = totalWidth - usageWidth,
+            devideLength = slidingLength + 1,
+            devideWidth = (useWidth / devideLength),
+            activeWidth = devideWidth * 2;
+        valueObj.find('.item, .img, .item .cont').css('width', devideWidth);
+        valueObj.find('.item .cont').css('left', devideWidth);
+        valueObj.find('.item.active').css('width', activeWidth);
+    }
+
+    function initTestimonials2() {
+        $('.testimonials2').each(function (index, value) {
+            layoutTestimonials2($(value));
+        });
+        // Bind the delegated hover handler only once — it recalculates widths
+        // from the live DOM so it stays correct after content refreshes.
+        if (!t2HandlerBound) {
+            t2HandlerBound = true;
+            $(document).on('mouseenter', '.testimonials2 .item', function () {
+                var $item = $(this);
+                var valueObj = $item.closest('.testimonials2');
+                $item.siblings().removeClass('active');
+                $item.addClass('active');
+                layoutTestimonials2(valueObj);
+            });
+        }
+    }
+
+    function initRollingText() {
+        $('.rolling-text').each(function () {
+            const $el = $(this);
+            if ($el.attr('data-rolling-initialized')) return;
+            $el.attr('data-rolling-initialized', '1');
+            const innerText = $el.text();
+            $el.empty();
+            const $textContainer = $('<div>').addClass('block');
+            for (const letter of innerText) {
+                const $span = $('<span>').addClass('letter').text(letter.trim() === '' ? '\xa0' : letter);
+                $textContainer.append($span);
+            }
+            $el.append($textContainer).append($textContainer.clone());
+        });
+    }
+
+    function initDataBackgrounds() {
+        var pageSection = $(".bg-img, section");
+        pageSection.each(function () {
+            if ($(this).attr("data-background")) {
+                $(this).css("background-image", "url(" + $(this).data("background") + ")");
+            }
+        });
+    }
+
+    function initWOW() {
+        if (typeof WOW !== "undefined" && !wayoutsState.wow) {
+            var wow = new WOW({
+                animateClass: 'animated',
+                offset: 100
+            });
+            wow.init();
+            wayoutsState.wow = wow;
+        }
+    }
+
+    function initPreloaderIntro(force) {
+        // Preloader dismissal + hero entrance. In the original static template
+        // this ran at document-ready against fully-rendered HTML. Under Next.js
+        // the hero header mounts only after Firestore content arrives, so the
+        // entrance is deferred until `header .container` exists; a fallback
+        // timer guarantees the preloader is dismissed even if content never
+        // mounts (error/loading states). Runs exactly once.
+        if (wayoutsState.introDone || typeof gsap === "undefined") return;
+        var svg = document.getElementById("svg");
+        if (!svg) return;
+
+        // Capture the live elements once — selectors evaluated later inside the
+        // timeline could match a re-mounted node and orphan the animation.
+        var heroHeader = document.querySelector("header");
+        var heroContainer = document.querySelector("header .container");
+
+        if (!heroContainer && !force) {
+            if (!wayoutsState.introFallback) {
+                wayoutsState.introFallback = setTimeout(function () {
+                    wayoutsState.introFallback = null;
+                    initPreloaderIntro(true);
+                }, 2000);
+            }
+            return;
+        }
+        if (wayoutsState.introFallback) {
+            clearTimeout(wayoutsState.introFallback);
+            wayoutsState.introFallback = null;
+        }
+        wayoutsState.introDone = true;
+
+        const tl = gsap.timeline();
+        const curve = "M0 502S175 272 500 272s500 230 500 230V0H0Z";
+        const flat = "M0 2S175 1 500 1s500 1 500 1V0H0Z";
+        tl.to(".loader-wrap-heading .load-text, .loader-wrap-heading .cont", {
+            delay: 1.5,
+            y: -100,
+            opacity: 0,
+        });
+        tl.to(svg, {
+            duration: 0.5,
+            attr: {
+                d: curve
+            },
+            ease: "power2.easeIn",
+        }).to(svg, {
+            duration: 0.5,
+            attr: {
+                d: flat
+            },
+            ease: "power2.easeOut",
+        });
+        tl.to(".loader-wrap", {
+            y: -1500,
+        });
+        tl.to(".loader-wrap", {
+            zIndex: -1,
+            display: "none",
+        });
+        if (heroHeader && heroContainer) {
+            // clearProps on completion so React-owned elements can never be
+            // orphaned at opacity:0 / translated if the timeline is interrupted.
+            tl.from(heroHeader, {
+                y: 200,
+                clearProps: "transform",
+            }, "-=1.5");
+            tl.from(heroContainer, {
+                y: 40,
+                opacity: 0,
+                delay: 0.3,
+                clearProps: "opacity,transform",
+            }, "-=1.5");
+        }
+    }
+
+    function refreshSmoother() {
+        if (typeof gsap === "undefined" || typeof ScrollSmoother === "undefined") return;
+        var smoother = ScrollSmoother.get();
+        if (!smoother) return;
+        // Re-target the smoother at the current #smooth-content element (React may
+        // have re-created it) and re-scan data-speed/data-lag effects.
+        try {
+            var currentContent = smoother.content();
+            var liveContent = document.getElementById('smooth-content');
+            if (liveContent && currentContent !== liveContent) {
+                smoother.content('#smooth-content');
+            }
+        } catch (e) { /* noop */ }
+        try {
+            smoother.effects('[data-speed], [data-lag]');
+        } catch (e) { /* noop */ }
+    }
+
+    var missedMutations = false;
+
+    function wayoutsRefreshAnimations() {
+        if (isAdminPage()) return;
+
+        isRefreshing = true;
+        missedMutations = false;
+        // Dismiss the preloader / play the hero entrance as soon as the hero
+        // header exists (deferred from document.ready while content loads).
+        initPreloaderIntro();
+        try {
+            teardownAnimations();
+            initRollingText();
+            initDataBackgrounds();
+            initWOW();
+            initScrollAnimations();
+            initSwipers();
+            initIsotope();
+            initMarquee();
+            initCounters();
+            initTestimonials2();
+            refreshSmoother();
+
+            if (typeof ScrollTrigger !== "undefined") {
+                ScrollTrigger.refresh();
+                // Images inside freshly mounted content change the page height
+                // as they load. Refresh once more after they arrive.
+                var pendingImgs = Array.prototype.slice.call(
+                    document.querySelectorAll('#smooth-content img')
+                ).filter(function (img) { return !img.complete; });
+                if (pendingImgs.length && typeof imagesLoaded !== "undefined") {
+                    imagesLoaded(pendingImgs, function () {
+                        if (typeof ScrollTrigger !== "undefined") {
+                            ScrollTrigger.refresh();
+                        }
+                    });
+                }
+            }
+        } finally {
+            // Quiet period: swallow mutations caused by our own init (Swiper
+            // clones, isotope node reordering, rolling-text spans) so the
+            // observer never re-triggers itself. If real content arrived
+            // during the quiet period, run one more refresh afterwards.
+            setTimeout(function () {
+                isRefreshing = false;
+                if (missedMutations) {
+                    missedMutations = false;
+                    wayoutsRefreshAnimations();
+                }
+            }, 400);
+        }
+        wayoutsState.initialized = true;
+    }
+
+    // Expose for React (ScriptLoader / AnimationRefresh component)
+    window.wayoutsRefreshAnimations = wayoutsRefreshAnimations;
+
+    /* ==========================================================================
+       2. DOCUMENT READY
+       ========================================================================== */
+    $(document).ready(function () {
+
+        /* ==========================================================================
+           WOW ANIMATION
+           ========================================================================== */
+        initWOW();
+
+        /* ==========================================================================
+           3. CURSOR ANIMATION
+           ========================================================================== */
+        (function () {
+            const cursor = document.querySelector('.cursor');
+            if (!cursor) return;
+
+            const animateit = function (e) {
+                const hoverAnim = this.querySelector('.hover-anim');
+                if (!hoverAnim) return;
+                const { offsetX: x, offsetY: y } = e;
+                const { offsetWidth: width, offsetHeight: height } = this;
+                const move = 100;
+                const xMove = x / width * (move * 2) - move;
+                const yMove = y / height * (move * 2) - move;
+
+                hoverAnim.style.transform = `translate(${xMove}px, ${yMove}px)`;
+                if (e.type === 'mouseleave') {
+                    hoverAnim.style.transform = '';
+                }
+            };
+
+            const editCursor = e => {
+                const { clientX: x, clientY: y } = e;
+                cursor.style.left = x + 'px';
+                cursor.style.top = y + 'px';
+            };
+
+            // Delegated binding — works for .hover-this elements mounted at
+            // any time (React/Firestore content included).
+            $(document).on('mousemove', '.hover-this', animateit);
+            $(document).on('mouseleave', '.hover-this', animateit);
+            window.addEventListener('mousemove', editCursor);
+
+            $(document).on('mouseenter', 'a, .cursor-pointer', function () {
+                $(".cursor").addClass("cursor-active");
+            });
+            $(document).on('mouseleave', 'a, .cursor-pointer', function () {
+                $(".cursor").removeClass("cursor-active");
+            });
+        })();
+
+        /* ==========================================================================
+           4. SMOOTH SCROLL NAV (SCROLLIT)
+           ========================================================================== */
+        if ($.scrollIt) {
+            $.scrollIt({
+                upKey: 38,
+                downKey: 40,
+                easing: 'linear',
+                scrollTime: 600,
+                activeClass: 'active',
+                onPageChange: null,
+                topOffset: -100
+            });
+        }
+
+        /* ==========================================================================
+           5. ONEPAGE MENU CLICK
+           ========================================================================== */
+        $(document).on('click', 'a[data-scroll-nav]', function (e) {
+            var href = $(this).attr('href');
+            if (href && href !== "#" && href !== "javascript:void(0)") {
+                return;
+            }
+            e.preventDefault();
+            var target = parseInt($(this).attr('data-scroll-nav'), 10);
+            var targetSection = $('[data-scroll-index="' + target + '"]');
+            if (targetSection.length) {
+                $('html, body').animate({
+                    scrollTop: targetSection.offset().top - 100
+                }, 600);
+            }
+            if ($('.navbar-collapse').hasClass('show')) {
+                $('.navbar-collapse').collapse('hide');
+            }
+        });
+
+        /* ==========================================================================
+           6. NAVBAR SCROLL BACKGROUND
+           ========================================================================== */
+        wind.on("scroll", function () {
+            var bodyScroll = wind.scrollTop(),
+                navbar = $(".navbar"),
+                logo = $(".navbar .logo > img");
+            if (bodyScroll > 100) {
+                navbar.addClass("nav-scroll");
+                if (navbar.hasClass("nav-inner")) {
+                    logo.attr('src', '/assets/img/logo-light.png');
+                }
+            } else {
+                navbar.removeClass("nav-scroll");
+                if (navbar.hasClass("nav-inner")) {
+                    logo.attr('src', '/assets/img/logo-dark.png');
+                } else {
+                    logo.attr('src', '/assets/img/logo-light.png');
+                }
+            }
+        });
+
+        /* ==========================================================================
+           7. MOBILE MENU CLOSE
+           ========================================================================== */
+        $(document).on('click', '.navbar-nav .dropdown-item a', function () {
+            $(".navbar-collapse").removeClass("show");
+        });
+
+        /* ==========================================================================
+           8. ROLLING TEXT
+           ========================================================================== */
+        initRollingText();
+        $(document).on('mouseenter', '.rolling-text', function () {
+            $(this).removeClass('play');
+        });
+
+
+
+        /* ==========================================================================
+           9. DYNAMIC BACKGROUND IMAGE
+           ========================================================================== */
+        initDataBackgrounds();
+
+        /* ==========================================================================
+           10. YOUTUBE POPUP
+           ========================================================================== */
+        $(document).on('click', 'a.vid', function (e) {
+            e.preventDefault();
+            if ($(this).YouTubePopUp) {
+                $(this).YouTubePopUp();
+            }
+        });
+
+        /* ==========================================================================
+           11. MAGNIFIC POPUP
+           ========================================================================== */
+        if ($.fn.magnificPopup) {
+            // Delegated bindings — galleries and zoom links may be mounted by
+            // React after Firestore data arrives, long after document-ready.
+            $(document).magnificPopup({
+                delegate: '.gallery .popimg',
+                type: 'image',
+                gallery: {
+                    enabled: true
+                }
+            });
+            $(document).magnificPopup({
+                delegate: '.img-zoom',
+                type: "image",
+                closeOnContentClick: true,
+                mainClass: "mfp-fade",
+                gallery: {
+                    enabled: true,
+                    navigateByImgClick: true,
+                    preload: [0, 1]
+                }
+            });
+            $(document).magnificPopup({
+                delegate: '.magnific-youtube, .magnific-vimeo, .magnific-custom',
+                disableOn: 700,
+                type: 'iframe',
+                mainClass: 'mfp-fade',
+                removalDelay: 300,
+                preloader: false,
+                fixedContentPos: false
+            });
+            $(document).magnificPopup({
+                delegate: '.image-popup-vertical-fit',
+                type: 'image',
+                closeOnContentClick: true,
+                mainClass: 'mfp-img-mobile',
+                image: {
+                    verticalFit: true
+                }
+            });
+        }
+
+        /* ==========================================================================
+           12. ISOTOPE GALLERY
+           ========================================================================== */
+        initIsotope();
+
+        /* ==========================================================================
+           13. SCROLL BACK TO TOP
+           ========================================================================== */
+        var progressPath = document.querySelector('.progress-wrap path');
+        if (progressPath) {
+            var pathLength = progressPath.getTotalLength();
+            progressPath.style.transition = progressPath.style.WebkitTransition = 'none';
+            progressPath.style.strokeDasharray = pathLength + ' ' + pathLength;
+            progressPath.style.strokeDashoffset = pathLength;
+            progressPath.getBoundingClientRect();
+            progressPath.style.transition = progressPath.style.WebkitTransition = 'stroke-dashoffset 10ms linear';
+            var updateProgress = function () {
+                var scroll = $(window).scrollTop();
+                var height = $(document).height() - $(window).height();
+                var progress = pathLength - (scroll * pathLength / height);
+                progressPath.style.strokeDashoffset = progress;
+            };
+            updateProgress();
+            $(window).on('scroll', updateProgress);
+            var offset = 150;
+            var duration = 550;
+            jQuery(window).on('scroll', function () {
+                if (jQuery(this).scrollTop() > offset) {
+                    jQuery('.progress-wrap').addClass('active-progress');
+                } else {
+                    jQuery('.progress-wrap').removeClass('active-progress');
+                }
+            });
+            jQuery('.progress-wrap').on('click', function (event) {
+                event.preventDefault();
+                jQuery('html, body').animate({
+                    scrollTop: 0
+                }, duration);
+                return false;
+            });
+        }
+
+        /* ==========================================================================
+           14. ACCORDION FAQ
+           ========================================================================== */
+        if ($(".accordion-box").length) {
+            $(document).on("click", ".accordion-box .acc-btn", function () {
+                var outerBox = $(this).closest(".accordion-box");
+                var target = $(this).closest(".accordion");
+                if ($(this).next(".acc-content").is(":visible")) {
+                    $(this).removeClass("active");
+                    $(this).next(".acc-content").slideUp(300);
+                    outerBox.children(".accordion").removeClass("active-block");
+                } else {
+                    outerBox.find(".accordion .acc-btn").removeClass("active");
+                    $(this).addClass("active");
+                    outerBox.children(".accordion").removeClass("active-block");
+                    outerBox.find(".accordion").children(".acc-content").slideUp(300);
+                    target.addClass("active-block");
+                    $(this).next(".acc-content").slideDown(300);
+                }
+            });
+        }
+
+        /* ==========================================================================
+           15. CUSTOM MAGNIFIC POPUP
+           ========================================================================== */
+        $(document).on('click', '.popup-img', function (e) {
+            e.preventDefault();
+            var src = $(this).attr('href') || $(this).data('src');
+            var galleryName = $(this).data('gallery');
+            var items;
+            var galleryEnabled = false;
+            var index = 0;
+            if (galleryName) {
+                items = $('.popup-img').filter('[data-gallery="' + galleryName + '"]').map(function () {
+                    return {
+                        src: $(this).attr('href') || $(this).data('src')
+                    };
+                }).get();
+                galleryEnabled = true;
+                index = items.findIndex(function (it) {
+                    return it.src === src;
+                });
+            } else {
+                items = {
+                    src: src
+                };
+            }
+            $.magnificPopup.open({
+                items: items,
+                type: 'image',
+                gallery: {
+                    enabled: galleryEnabled
+                },
+                image: {
+                    markup: '<div class="mfp-figure">' + '<div class="close-btn close-icon" role="button">&#215;</div>' + '<div class="mfp-img"></div>' + '<div class="close-btn close-bottom" role="button">閉じる</div>' + '</div>'
+                },
+                index: index,
+                callbacks: {
+                    open: function () {
+                        $(document).off('click.mfpClose', '.close-btn').on('click.mfpClose', '.close-btn', function () {
+                            $.magnificPopup.close();
+                        });
+                    },
+                    close: function () {
+                        $(document).off('click.mfpClose', '.close-btn');
+                    }
+                }
+            });
+        });
+
+        /* ==========================================================================
+           16. BUTTON ACTIVE TOGGLE
+           ========================================================================== */
+        $(document).on('click', '.butn-arrow, .butn-arrow2', function () {
+            $(this).toggleClass('active');
+        });
+
+        /* ==========================================================================
+           17. GSAP SVG PRELOADER + HERO INTRO (deferred until hero mounts —
+               re-invoked from wayoutsRefreshAnimations when content arrives)
+           ========================================================================== */
+        initPreloaderIntro();
+
+
+
+        /* ==========================================================================
+           18. GSAP SCROLLTRIGGER ANIMATIONS
+           ========================================================================== */
+        initScrollAnimations();
+
+        /* ==========================================================================
+           19. MARQUEE
+           ========================================================================== */
+        initMarquee();
+
+        /* ==========================================================================
+           20. COUNTER
+           ========================================================================== */
+        initCounters();
+
+        /* ==========================================================================
+           21. SWIPER SLIDER
+           ========================================================================== */
+        initSwipers();
 
         /* ==========================================================================
            22. TESTIMONIALS 2 OWLCAROUSEL
            ========================================================================== */
-        $('.testimonials2').each(function (index, value) {
-            var valueObj = $(value),
-                totalWidth = valueObj.outerWidth(),
-                slidingLength = valueObj.find('.item').length,
-                devideRightPadding = parseInt(valueObj.css('padding-right')) / slidingLength,
-                devideLeftPadding = parseInt(valueObj.css('padding-left')) / slidingLength,
-                usageWidth = (slidingLength * 12.5) + 12.5 + devideRightPadding + devideLeftPadding,
-                useWidth = totalWidth - usageWidth,
-                devideLength = slidingLength + 1,
-                devideWidth = (useWidth / devideLength),
-                activeWidth = devideWidth * 2;
-            valueObj.find('.item, .img, .item .cont').css('width', devideWidth);
-            valueObj.find('.item .cont').css('left', devideWidth);
-            valueObj.find('.item.active').css('width', activeWidth);
-            $(document).on('mouseenter', '.testimonials2 .item', function () {
-                $(this).siblings().removeClass('active');
-                $(this).addClass('active');
-                valueObj.find('.item, .img, .item .cont').css('width', devideWidth);
-                valueObj.find('.item .cont').css('left', devideWidth);
-                valueObj.find('.item.active').css('width', activeWidth);
-            });
-        });
+        initTestimonials2();
 
+        /* ==========================================================================
+           28b. MUTATION OBSERVER — re-init animations when React mounts content
+           ========================================================================== */
+        if (!isAdminPage() && 'MutationObserver' in window) {
+            var refreshPending = false;
+            wayoutsState.observer = new MutationObserver(function (mutations) {
+                // Ignore mutations caused by our own animation setup — the
+                // isRefreshing quiet period in wayoutsRefreshAnimations()
+                // covers Swiper clones, isotope reordering and rolling-text
+                // spans, all of which are applied synchronously during init.
+                // Real content arriving during the quiet period is flagged
+                // and triggers one follow-up refresh.
+                if (isRefreshing) {
+                    missedMutations = true;
+                    return;
+                }
+
+                var hasRelevantChange = false;
+                for (var i = 0; i < mutations.length; i++) {
+                    var m = mutations[i];
+                    if (m.type === 'childList' && m.addedNodes.length > 0) {
+                        hasRelevantChange = true;
+                        break;
+                    }
+                }
+                if (!hasRelevantChange) return;
+
+                if (refreshPending) return;
+                refreshPending = true;
+                // Debounce: wait for the DOM to settle (React commits + images start
+                // loading) before tearing down and rebuilding animations.
+                setTimeout(function () {
+                    refreshPending = false;
+                    wayoutsRefreshAnimations();
+                }, 300);
+            });
+            wayoutsState.observer.observe(document.getElementById('smooth-wrapper') || document.body, {
+                childList: true,
+                subtree: true
+            });
+        }
     });
 
     /* ==========================================================================
@@ -801,165 +1288,5 @@
             body.removeClass('loaded');
         }, 1500);
     });
-
-    /* ==========================================================================
-        24. ELASTIC CARD ANIMATION
-        ========================================================================== */
-    if (typeof gsap !== "undefined" && typeof ScrollTrigger !== "undefined") {
-        const elasticCards = gsap.utils.toArray(".image-stack-card");
-        if (elasticCards.length) {
-            elasticCards.forEach((card, i) => {
-                card.style.zIndex = elasticCards.length - i;
-            });
-            const elasticTl = gsap.timeline({
-                scrollTrigger: {
-                    trigger: ".image-stack",
-                    start: "top 80%",
-                    end: "+=350",
-                    scrub: 1
-                }
-            });
-            elasticCards.forEach((card, i) => {
-                const offset = i - (elasticCards.length - 1) / 2;
-                elasticTl.to(card, {
-                    x: offset * 180,
-                    rotation: offset * 8,
-                    ease: "none"
-                }, 0);
-            });
-            let highestZ = elasticCards.length;
-            elasticCards.forEach(card => {
-                card.addEventListener("mouseenter", () => {
-                    highestZ++;
-                    gsap.to(card, {
-                        zIndex: highestZ,
-                        scale: 1.05,
-                        y: -10,
-                        duration: 0.3,
-                        ease: "power2.out"
-                    });
-                });
-                card.addEventListener("mouseleave", () => {
-                    gsap.to(card, {
-                        scale: 1,
-                        y: 0,
-                        duration: 0.3,
-                        ease: "power2.out"
-                    });
-                });
-            });
-        }
-    }
-
-    /* ==========================================================================
-        25. TEAM SLIDER
-        ========================================================================== */
-    var swiperTeam = new Swiper(".team-slider", {
-        slidesPerView: 4,
-        spaceBetween: 25,
-        loop: true,
-        speed: 900,
-        autoplay: false,
-        breakpoints: {
-            0: {
-                slidesPerView: 1
-            },
-            768: {
-                slidesPerView: 2
-            },
-            1200: {
-                slidesPerView: 4
-            }
-        }
-    });
-
-    /* ==========================================================================
-        26. GALLERY SCROLL SLIDER
-        ========================================================================== */
-    var swiperGalleryScroll = new Swiper(".galleryscroll-slider", {
-        slidesPerView: 4,
-        spaceBetween: 25,
-        loop: true,
-        speed: 900,
-        autoplay: false,
-        breakpoints: {
-            0: {
-                slidesPerView: 1
-            },
-            768: {
-                slidesPerView: 2
-            },
-            1200: {
-                slidesPerView: 4
-            }
-        }
-    });
-
-    /* ==========================================================================
-           18. STACKCARD ANIMATION
-           ========================================================================== */
-    if (typeof gsap !== "undefined" && typeof ScrollTrigger !== "undefined") {
-        var currentWidth = $(window).width();
-        if (currentWidth > 991) {
-            const fe = gsap.timeline({
-                scrollTrigger: {
-                    trigger: ".stsec .stack-title",
-                    start: "center center",
-                    endTrigger: ".stsec",
-                    end: "bottom bottom",
-                    pin: true,
-                    pinSpacing: false,
-                }
-            });
-            let cardsList = gsap.utils.toArray(".stackCard");
-            let stickDistance = 0;
-            let lastCardST = ScrollTrigger.create({
-                trigger: cardsList[cardsList.length - 1],
-                start: "center center"
-            });
-            cardsList.forEach((card, index) => {
-                ScrollTrigger.create({
-                    trigger: card,
-                    start: "center center",
-                    end: () => lastCardST.start + stickDistance,
-                    pin: true,
-                    pinSpacing: false,
-                    scrub: true,
-                    snap: true,
-                    ease: "power4.out",
-                    onUpdate: (self) => {
-                        const progress = self.progress;
-                        const EvenOdd = index % 2 === 0;
-                        gsap.to(card, {
-                            scaleX: 1 - progress * 0.2,
-                            x: index * 20,
-                            filter: `grayscale(${progress * 20}%)`,
-                            top: index * 20,
-                            rotate: EvenOdd ? -3 * progress : 3 * progress,
-                        });
-                    }
-                });
-            });
-        }
-    }
-
-
-    /* ==========================================================================
-           19. TRAVEL HERO SLIDER
-           ========================================================================== */
-    if ($('.travel-hero-slider').length) {
-        var travelHeroSlider = new Swiper(".travel-hero-slider", {
-            grabCursor: true,
-            speed: 500,
-            effect: "slide",
-            loop: false,
-            mousewheel: {
-                invert: false,
-                sensitivity: 1,
-                releaseOnEdges: true,
-            },
-        });
-        travelHeroSlider.enable();
-    }
 
 })(jQuery);

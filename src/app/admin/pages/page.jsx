@@ -2,8 +2,8 @@
 
 import { useState, useEffect } from 'react';
 import AdminShell from '../AdminShell';
-import { defaultPagesContent, getPagesContent, savePagesContent } from '../../../lib/pagesContent';
-import { defaultHomeContent, getHomeContent, saveHomeContent } from '../../../lib/homeContent';
+import { getPagesContent, savePagesContent } from '../../../lib/pagesContent';
+import { getHomeContent, saveHomeContent } from '../../../lib/homeContent';
 import { TextField, TextareaField, ImageField, ListEditor, StringListEditor, VisibilityToggle } from '../home/fields';
 
 const BUTTON_STYLES = [
@@ -25,10 +25,6 @@ const PAGE_TABS = [
     { id: 'testimonials', label: 'Testimonials page' },
     { id: 'footer', label: 'Footer & Newsletter' },
 ];
-
-function clone(value) {
-    return JSON.parse(JSON.stringify(value));
-}
 
 function HeroEditor({ value, update }) {
     const hero = value;
@@ -199,22 +195,29 @@ function HomeAboutEditor({ value, update }) {
 }
 
 export default function AdminPagesManager() {
-    const [pages, setPages] = useState(defaultPagesContent);
-    const [homeContent, setHomeContent] = useState(defaultHomeContent);
+    const [pages, setPages] = useState(null);
+    const [homeContent, setHomeContent] = useState(null);
     const [activeTab, setActiveTab] = useState('home');
     const [loading, setLoading] = useState(true);
+    const [loadError, setLoadError] = useState(null);
     const [saving, setSaving] = useState(false);
     const [message, setMessage] = useState(null);
 
     useEffect(() => {
         let isMounted = true;
-        Promise.all([getPagesContent(), getHomeContent()]).then(([pagesData, homeData]) => {
-            if (isMounted) {
-                setPages(pagesData);
-                setHomeContent(homeData);
+        Promise.all([getPagesContent(), getHomeContent()])
+            .then(([pagesData, homeData]) => {
+                if (!isMounted) return;
+                setPages(pagesData || {});
+                setHomeContent(homeData || {});
                 setLoading(false);
-            }
-        });
+            })
+            .catch((err) => {
+                console.error('Failed to load pages configuration:', err.message);
+                if (!isMounted) return;
+                setLoadError(err);
+                setLoading(false);
+            });
         return () => {
             isMounted = false;
         };
@@ -258,29 +261,22 @@ export default function AdminPagesManager() {
         }
     }
 
-    function handleResetActivePage() {
-        if (activeTab === 'home') {
-            if (window.confirm('Reset Home page (Hero and About blocks) to default settings?')) {
-                setHomeContent(clone(defaultHomeContent));
-                setMessage(null);
-            }
-        } else {
-            if (window.confirm(`Reset ${PAGE_TABS.find((t) => t.id === activeTab)?.label} to default settings?`)) {
-                setPages((current) => ({
-                    ...current,
-                    [activeTab]: { ...defaultPagesContent[activeTab] },
-                }));
-                setMessage(null);
-            }
-        }
-    }
-
-    const current = pages[activeTab] || defaultPagesContent[activeTab] || {};
+    const current = (pages && pages[activeTab]) || {};
 
     return (
         <AdminShell title="Pages CMS" description="Unified CMS to manage Home page and all inner pages content, hero banners, and static blocks.">
             {loading ? (
                 <div className="admin-card admin-empty">Loading pages configuration…</div>
+            ) : loadError ? (
+                <div className="admin-card admin-empty">
+                    <p>Failed to load pages configuration from Firestore: {loadError.message}</p>
+                    <p style={{ fontSize: '13px' }}>Please verify your Firebase connection and reload this page.</p>
+                </div>
+            ) : !homeContent || Object.keys(homeContent).length === 0 ? (
+                <div className="admin-card admin-empty">
+                    <p>No page content found in Firestore.</p>
+                    <p style={{ fontSize: '13px' }}>Run the seeding script or add content before editing pages.</p>
+                </div>
             ) : (
                 <form onSubmit={handleSave}>
                     <div className="admin-tabs" role="tablist">
@@ -302,7 +298,12 @@ export default function AdminPagesManager() {
                     </div>
 
                     {/* ===================== HOME TAB ===================== */}
-                    {activeTab === 'home' && (
+                    {activeTab === 'home' && (!homeContent.hero || !homeContent.about) && (
+                        <div className="admin-card admin-empty">
+                            <p>Home content is incomplete in Firestore — missing hero or about section.</p>
+                        </div>
+                    )}
+                    {activeTab === 'home' && homeContent.hero && homeContent.about && (
                         <>
                             <div className="admin-card admin-section-visibility" style={{ marginBottom: '14px' }}>
                                 <VisibilityToggle
@@ -696,25 +697,25 @@ export default function AdminPagesManager() {
                                         <div className="admin-form-grid">
                                             <TextField
                                                 label="Section Subtitle"
-                                                value={homeContent.footer?.subtitle || 'SUBSCRIBE TO TRAVEL'}
+                                                value={homeContent.footer?.subtitle || ''}
                                                 onChange={(val) => updateHomeSection('footer', { ...homeContent.footer, subtitle: val })}
                                                 placeholder="SUBSCRIBE TO TRAVEL"
                                             />
                                             <TextField
                                                 label="Main Heading"
-                                                value={homeContent.footer?.titlePart1 || 'Travel deals to your'}
+                                                value={homeContent.footer?.titlePart1 || ''}
                                                 onChange={(val) => updateHomeSection('footer', { ...homeContent.footer, titlePart1: val })}
                                                 placeholder="Travel deals to your"
                                             />
                                             <TextField
                                                 label="Heading Italic Accent"
-                                                value={homeContent.footer?.titleHighlight || 'inbox!'}
+                                                value={homeContent.footer?.titleHighlight || ''}
                                                 onChange={(val) => updateHomeSection('footer', { ...homeContent.footer, titleHighlight: val })}
                                                 placeholder="inbox!"
                                             />
                                             <TextField
                                                 label="Instagram Handle Label"
-                                                value={homeContent.footer?.instagramHandle || 'WAYOUTS'}
+                                                value={homeContent.footer?.instagramHandle || ''}
                                                 onChange={(val) => updateHomeSection('footer', { ...homeContent.footer, instagramHandle: val })}
                                                 placeholder="WAYOUTS"
                                             />
@@ -741,9 +742,6 @@ export default function AdminPagesManager() {
 
                     <div className="admin-hero-savebar">
                         {message && <span className={`admin-hero-message ${message.type}`}>{message.text}</span>}
-                        <button type="button" className="admin-ghost-button" onClick={handleResetActivePage} disabled={saving}>
-                            Reset section to default
-                        </button>
                         <button type="submit" className="admin-primary-button" disabled={saving}>
                             {saving ? 'Saving…' : <><i className="fa-light fa-floppy-disk"></i> Save & publish</>}
                         </button>
